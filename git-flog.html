@@ -2,16 +2,67 @@
 <html>
 <meta charset="UTF-8">
 <script>
-var xmlhttp = new XMLHttpRequest();
-xmlhttp.onreadystatechange = function() {
-    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-        document.getElementById("info").appendChild(document.createTextNode(xmlhttp.responseText));
+function getCommits(allCommits,url) {
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.onreadystatechange = function() {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            // document.getElementById("info").appendChild(document.createTextNode(xmlhttp.responseText));
+            addCommits(allCommits,xmlhttp.responseText);
+        }
     }
+    xmlhttp.open("GET", url, true);
+    xmlhttp.send();
 }
-xmlhttp.open("GET", "https://api.github.com/repos/git/git/commits?sha=master", true);
-xmlhttp.send();
+function commit(hash) {
+    this.hash = hash;
+    this.score = [];
+    this.children = [];
+    this.info = null;
+    this.domSelf = null;
+    this.domLinks = [];
+}
+function commitInfo(desc, parents) {
+    this.desc = desc;
+    this.parents = parents;
+}
+function addCommit(allCommits, hash, desc, parents) {
+    var c = null;
+    if (hash in allCommits) {
+        if (allCommits[hash].info == null) {
+            allCommits[hash].info = new commitInfo(desc, parents);
+        }
+        c = allCommits[hash]
+    } else {
+        var c = new commit(hash);
+        c.info = new commitInfo(desc, parents);
+        allCommits[hash] = c;
+    }
+    if (c.domSelf != null) {
+        document.getElementById("commits").removeChild(c.domSelf);
+        c.domSelf = null;
+    }
+    c.domSelf = document.createElement("div");
+    var a = document.createElement("a");
+    a.setAttribute("href", "https://github.com/git/git/commit/" + hash);
+    a.appendChild(document.createTextNode(desc));
+    c.domSelf.appendChild(a);
+    c.domSelf.appendChild(document.createElement("br"));
+    document.getElementById("commits").appendChild(c.domSelf);
+}
+function addCommits(allCommits, json) {
+    var cs = JSON.parse(json);
+    cs.forEach(function(c){
+        var desc = c.commit.author.email + ": " + c.commit.message.split("\n")[0];
+        var parents = []
+        c.parents.forEach(function(p){ parents.push(allCommits[p.sha]) });
+        addCommit(allCommits,c.sha,desc,parents);
+    });
+}
+var allCommits = {};
+getCommits(allCommits,"https://api.github.com/repos/git/git/commits?sha=master");
 </script>
 <body>
 <pre id="info"></pre>
+<div id="commits"></div>
 </body>
 </html>
