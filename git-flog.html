@@ -1,0 +1,17 @@
+<!DOCTYPE html> 
+<html>
+<meta charset="UTF-8">
+<script>
+var xmlhttp = new XMLHttpRequest();
+xmlhttp.onreadystatechange = function() {
+    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+        document.getElementById("info").appendChild(document.createTextNode(xmlhttp.responseText));
+    }
+}
+xmlhttp.open("GET", "https://api.github.com/repos/git/git/commits?sha=master", true);
+xmlhttp.send();
+</script>
+<body>
+<pre id="info"></pre>
+</body>
+</html>
