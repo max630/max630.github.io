@@ -2,11 +2,44 @@
 <html>
 <meta charset="UTF-8">
 <script>
-function getCommits(allCommits,url) {
+function statePrototype() {
+    this.commits = {};
+    this.pickCommit = function(hash) {
+        if (hash in this.commits) {
+            return this.commits[hash];
+        } else {
+            var c = new commit(hash);
+            this.commits[hash] = c;
+            return c;
+        }
+    }
+    this.addCommit = function(hash,desc,parents) {
+        var c = this.pickCommit(hash);
+        if (c.info != null) {
+            throw "info already registered for " + hash;
+        }
+        var parent_objects = parents.map(function(p){ return this.pickCommit(p); }, this);
+        c.info = new commitInfo(desc,parents);
+
+        // TODO: queue this
+        if (c.domSelf != null) {
+            document.getElementById("commits").removeChild(c.domSelf);
+            c.domSelf = null;
+        }
+        c.domSelf = document.createElement("div");
+        var a = document.createElement("a");
+        a.setAttribute("href", "https://github.com/git/git/commit/" + hash);
+        a.appendChild(document.createTextNode(desc));
+        c.domSelf.appendChild(a);
+        c.domSelf.appendChild(document.createElement("br"));
+        document.getElementById("commits").appendChild(c.domSelf);
+    }
+}
+function getCommits(state,url) {
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
         if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-            addCommits(allCommits,xmlhttp.responseText);
+            addCommits(state,xmlhttp.responseText);
         }
     }
     xmlhttp.open("GET", url, true);
@@ -24,42 +57,16 @@ function commitInfo(desc, parents) {
     this.desc = desc;
     this.parents = parents;
 }
-function addCommit(allCommits, hash, desc, parents) {
-    var c = null;
-    if (hash in allCommits) {
-        if (allCommits[hash].info == null) {
-            allCommits[hash].info = new commitInfo(desc, parents);
-        }
-        c = allCommits[hash]
-    } else {
-        var c = new commit(hash);
-        c.info = new commitInfo(desc, parents);
-        allCommits[hash] = c;
-    }
-    if (c.domSelf != null) {
-        document.getElementById("commits").removeChild(c.domSelf);
-        c.domSelf = null;
-    }
-    c.domSelf = document.createElement("div");
-    var a = document.createElement("a");
-    a.setAttribute("href", "https://github.com/git/git/commit/" + hash);
-    a.appendChild(document.createTextNode(desc));
-    c.domSelf.appendChild(a);
-    c.domSelf.appendChild(document.createElement("br"));
-    document.getElementById("commits").appendChild(c.domSelf);
-}
-function addCommits(allCommits, json) {
+function addCommits(state, json) {
     var cs = JSON.parse(json);
     cs.forEach(function(c){
         var desc = c.commit.author.email + ": " + c.commit.message.split("\n")[0];
-        var parents = []
-        c.parents.forEach(function(p){ parents.push(allCommits[p.sha]) });
-        addCommit(allCommits,c.sha,desc,parents);
+        state.addCommit(c.sha,desc,c.parents.map(function(p) { return p.sha } ));
     });
     // document.getElementById("info").textContent = json;
 }
-var allCommits = {};
-getCommits(allCommits,"https://api.github.com/repos/git/git/commits?sha=master");
+var state = new statePrototype();
+getCommits(state,"https://api.github.com/repos/git/git/commits?sha=master");
 </script>
 <body>
 <div id="commits"></div>
