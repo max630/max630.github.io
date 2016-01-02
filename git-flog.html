@@ -55,20 +55,20 @@ function commit(hash) {
             return;
         }
         var pl = this.info.parents.length;
-        var handleParent = function(p,pscore){
+        var handleParent = function(treeParent,p,pscore){
             if (scoreGT(pscore,p.score)) {
                 p.score = pscore;
-                p.treeParent = this;
+                p.treeParent = treeParent;
                 p.sortParents();
             }
         }
         var nextscore = this.score.concat();
         ++nextscore[nextscore.length - 1];
-        handleParent(this.info.parents[0], nextscore);
+        handleParent(this.treeParent,this.info.parents[0], nextscore);
         // ignore next parents so far
         // TODO: make the intermediate fake "commit"
         if (pl > 1) {
-            handleParent(this.info.parents[1], this.score.concat([1]));
+            handleParent(this,this.info.parents[1], this.score.concat([1]));
         }
 
         // TODO: bring this separately this
@@ -76,14 +76,28 @@ function commit(hash) {
             document.getElementById("commits").removeChild(this.domSelf);
             this.domSelf = null;
         }
-        this.domSelf = document.createElement("div");
+        this.domSelf = document.createElement("li");
         var a = document.createElement("a");
         a.setAttribute("href", "https://github.com/git/git/commit/" + hash);
         a.appendChild(document.createTextNode(this.info.desc));
         this.domSelf.appendChild(a);
         this.domSelf.appendChild(document.createTextNode(JSON.stringify(this.score)));
         this.domSelf.appendChild(document.createElement("br"));
-        document.getElementById("commits").appendChild(this.domSelf);
+        var base = (this.treeParent == null) ? document.getElementById("commits")
+                    : this.treeParent.pickSublist();
+        base.appendChild(this.domSelf);
+    }
+    this.pickSublist = function() {
+        if (this.domSelf == null) {
+            return null;
+        }
+
+        if (this.domSublist != null) {
+            return this.domSublist;
+        }
+        this.domSublist = document.createElement("ul");
+        this.domSelf.appendChild(this.domSublist);
+        return this.domSublist;
     }
 
     this.hash = hash;
@@ -92,6 +106,7 @@ function commit(hash) {
     this.treeParent = null;
     this.info = null;
     this.domSelf = null;
+    this.domSublist = null;
     this.domLinks = [];
 }
 function commitInfo(desc, parents) {
@@ -110,7 +125,7 @@ var state = new statePrototype();
 getCommits(state,"https://api.github.com/repos/git/git/commits?sha=master");
 </script>
 <body>
-<div id="commits"></div>
+<ul id="commits"></ul>
 <pre id="info"></pre>
 </body>
 </html>
