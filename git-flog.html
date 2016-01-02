@@ -6,7 +6,6 @@ function getCommits(allCommits,url) {
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
         if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-            // document.getElementById("info").appendChild(document.createTextNode(xmlhttp.responseText));
             addCommits(allCommits,xmlhttp.responseText);
         }
     }
@@ -57,12 +56,13 @@ function addCommits(allCommits, json) {
         c.parents.forEach(function(p){ parents.push(allCommits[p.sha]) });
         addCommit(allCommits,c.sha,desc,parents);
     });
+    // document.getElementById("info").textContent = json;
 }
 var allCommits = {};
 getCommits(allCommits,"https://api.github.com/repos/git/git/commits?sha=master");
 </script>
 <body>
-<pre id="info"></pre>
 <div id="commits"></div>
+<pre id="info"></pre>
 </body>
 </html>
