@@ -82,7 +82,6 @@ function commit(hash) {
         a.appendChild(document.createTextNode(this.info.desc));
         this.domSelf.appendChild(a);
         this.domSelf.appendChild(document.createTextNode(JSON.stringify(this.score)));
-        this.domSelf.appendChild(document.createElement("br"));
         var base = (this.treeParent == null) ? document.getElementById("commits")
                     : this.treeParent.pickSublist();
         base.appendChild(this.domSelf);
@@ -95,9 +94,32 @@ function commit(hash) {
         if (this.domSublist != null) {
             return this.domSublist;
         }
+        this.domToggle = document.createElement("a");
+        this.domToggle.textContent = "[>]";
+        // this.domToggle.setAttribute("id", "tg:" + this.hash);
+        this.domToggle.setAttribute("href", "javascript:state.commits[\"" + this.hash + "\"].toggle();");
+        this.domToggle.style.marginRight = "0.25em";
+        this.domSelf.insertBefore(this.domToggle, this.domSelf.childNodes[0]);
         this.domSublist = document.createElement("ul");
+        // this.domSublist.setAttribute("id", "ul:" + this.hash);
         this.domSelf.appendChild(this.domSublist);
+        this.domSublist.style.display = "none";
         return this.domSublist;
+    }
+    this.toggle = function() {
+        if (this.domSublist == null) {
+            throw "sublist not defined: " + this.hash;
+        }
+        switch (this.domSublist.style.display) {
+        case "none":
+            this.domSublist.style.display = "inherit";
+            this.domToggle.textContent = "[v]";
+            break;
+        default:
+            this.domSublist.style.display = "none";
+            this.domToggle.textContent = "[>]";
+            break;
+        }
     }
 
     this.hash = hash;
@@ -107,6 +129,7 @@ function commit(hash) {
     this.info = null;
     this.domSelf = null;
     this.domSublist = null;
+    this.domToggle = null;
     this.domLinks = [];
 }
 function commitInfo(desc, parents) {
