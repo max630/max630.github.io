@@ -12,6 +12,10 @@
 
 .sub-normal {
 }
+
+li:target > .desc {
+    background-color: orange;
+}
 </style>
 <script>
 function statePrototype() {
@@ -89,7 +93,9 @@ function commit(hash) {
             this.domSelf = null;
         }
         this.domSelf = document.createElement("li");
+        this.domSelf.id = "li:" + this.hash;
         var a = document.createElement("a");
+        a.className = "desc";
         a.setAttribute("href", "https://github.com/git/git/commit/" + hash);
         a.appendChild(document.createTextNode(this.info.desc));
         this.domSelf.appendChild(a);
