@@ -41,7 +41,7 @@ function statePrototype() {
     }
 }
 function scoreGT(s1, s2) {
-    var l = (s1.length > s2.length) ? s2 : s1;
+    var l = (s1.length > s2.length) ? s2.length : s1.length;
     for (var i = 0; i < l; ++i) {
         if (s1[i] > s2[i]) {
             return true;
