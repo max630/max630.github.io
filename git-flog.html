@@ -1,6 +1,18 @@
 <!DOCTYPE html> 
 <html>
 <meta charset="UTF-8">
+<style>
+.toggle {
+    margin-right: 0.25em;
+}
+
+.sub-folded {
+    display: none;
+}
+
+.sub-normal {
+}
+</style>
 <script>
 function statePrototype() {
     this.commits = {};
@@ -98,25 +110,25 @@ function commit(hash) {
         this.domToggle.textContent = "[>]";
         // this.domToggle.setAttribute("id", "tg:" + this.hash);
         this.domToggle.setAttribute("href", "javascript:state.commits[\"" + this.hash + "\"].toggle();");
-        this.domToggle.style.marginRight = "0.25em";
+        this.domToggle.setAttribute("class", "toggle");
         this.domSelf.insertBefore(this.domToggle, this.domSelf.childNodes[0]);
         this.domSublist = document.createElement("ul");
         // this.domSublist.setAttribute("id", "ul:" + this.hash);
         this.domSelf.appendChild(this.domSublist);
-        this.domSublist.style.display = "none";
+        this.domSublist.setAttribute("class", "sub-folded");
         return this.domSublist;
     }
     this.toggle = function() {
         if (this.domSublist == null) {
             throw "sublist not defined: " + this.hash;
         }
-        switch (this.domSublist.style.display) {
-        case "none":
-            this.domSublist.style.display = "inherit";
+        switch (this.domSublist.className) {
+        case "sub-folded":
+            this.domSublist.className = "sub-normal";
             this.domToggle.textContent = "[v]";
             break;
         default:
-            this.domSublist.style.display = "none";
+            this.domSublist.className = "sub-folded";
             this.domToggle.textContent = "[>]";
             break;
         }
