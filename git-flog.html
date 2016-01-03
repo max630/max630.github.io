@@ -58,9 +58,11 @@ function scoreGT(s1, s2) {
 function getCommits(state,url) {
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
-        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-            addCommits(state,xmlhttp.responseText);
+        if (xmlhttp.readyState == 4) {
             document.getElementById("info").textContent = xmlhttp.getAllResponseHeaders();
+            if (xmlhttp.status == 200) {
+                addCommits(state,xmlhttp.responseText);
+            }
         }
     }
     xmlhttp.open("GET", url, true);
