@@ -60,6 +60,7 @@ function getCommits(state,url) {
     xmlhttp.onreadystatechange = function() {
         if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
             addCommits(state,xmlhttp.responseText);
+            document.getElementById("info").textContent = xmlhttp.getAllResponseHeaders();
         }
     }
     xmlhttp.open("GET", url, true);
@@ -163,7 +164,7 @@ function addCommits(state, json) {
     // document.getElementById("info").textContent = json;
 }
 var state = new statePrototype();
-getCommits(state,"https://api.github.com/repos/git/git/commits?sha=master");
+getCommits(state,"https://api.github.com/repos/git/git/commits?sha=master&per_page=100");
 </script>
 <body>
 <ul id="commits"></ul>
