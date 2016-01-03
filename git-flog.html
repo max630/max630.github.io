@@ -65,13 +65,7 @@ function getCommits(state,url) {
             }
         }
     }
-    var username = document.getElementById("auth:username").value;
-    var password = document.getElementById("auth:password").value;
-    if (username != null && username.length > 0 && password != null && password.length > 0) {
-        xmlhttp.open("GET", url, true, username, password);
-    } else {
-        xmlhttp.open("GET", url, true);
-    }
+    xmlhttp.open("GET", url, true);
     xmlhttp.send();
 }
 function commit(hash) {
@@ -171,17 +165,10 @@ function addCommits(state, json) {
     });
     // document.getElementById("info").textContent = json;
 }
-function uiGetCommits() {
-    var state = new statePrototype();
-    getCommits(state,"https://api.github.com/repos/git/git/commits?sha=master&per_page=100");
-}
+var state = new statePrototype();
+getCommits(state,"https://api.github.com/repos/git/git/commits?sha=master&per_page=100");
 </script>
 <body>
-<form id="auth" action="javascript:uiGetCommits();">
- <input id="auth:username" type="text" name="username">
- <input id="auth:password" type="password" name="token">
- <input type="submit" value="Get">
-</form>
 <ul id="commits"></ul>
 <pre id="info"></pre>
 </body>
