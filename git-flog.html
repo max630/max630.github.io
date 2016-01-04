@@ -67,10 +67,9 @@ function getCommits(state,url) {
     }
     var username = document.getElementById("auth:username").value;
     var password = document.getElementById("auth:password").value;
+    xmlhttp.open("GET", url, true);
     if (username != null && username.length > 0 && password != null && password.length > 0) {
-        xmlhttp.open("GET", url, true, username, password);
-    } else {
-        xmlhttp.open("GET", url, true);
+        xmlhttp.setRequestHeader("Authorization", "Basic " + window.btoa(username + ":" + password));
     }
     xmlhttp.send();
 }
@@ -172,8 +171,8 @@ function addCommits(state, json) {
     // document.getElementById("info").textContent = json;
 }
 function uiGetCommits() {
-    var state = new statePrototype();
-    getCommits(state,"https://api.github.com/repos/git/git/commits?sha=master&per_page=100");
+    window.state = new statePrototype();
+    getCommits(window.state,"https://api.github.com/repos/git/git/commits?sha=master&per_page=100");
 }
 </script>
 <body>
