@@ -1,0 +1,21 @@
+<!DOCTYPE html> 
+<html>
+<head>
+ <meta charset="UTF-8">
+</head>
+<script>
+function handleAuth() {
+    var username = document.getElementById("user").value;
+    var password = document.getElementById("password").value;
+    alert("auth: " + username + ":" + password);
+}
+</script>
+<body>
+<form id="auth" action="javascript:handleAuth();">
+ <input id="user" type="text" name="user">
+ <input id="password" type="password" name="password">
+ <button value="Get">Get</button>
+</form>
+</body>
+</html>
+
