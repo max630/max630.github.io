@@ -32,7 +32,8 @@ function statePrototype() {
     this.addCommit = function(hash,desc,parents) {
         var c = this.pickCommit(hash);
         if (c.info != null) {
-            throw "info already registered for " + hash;
+            // duplicate; nothing to do
+            return;
         }
         var parent_objects = parents.map(function(p){ return this.pickCommit(p); }, this);
         c.info = new commitInfo(desc,parent_objects);
@@ -170,8 +171,8 @@ function addCommits(state, json) {
     });
     // document.getElementById("info").textContent = json;
 }
+var state = new statePrototype();
 function uiGetCommits() {
-    window.state = new statePrototype();
     getCommits(window.state,"https://api.github.com/repos/git/git/commits?sha=master&per_page=100");
 }
 </script>
