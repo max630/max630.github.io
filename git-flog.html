@@ -18,8 +18,7 @@ li:target > .desc {
 }
 </style>
 <script>
-function statePrototype() {
-    this.commits = {};
+function statePrototype(auth) {
     this.pickCommit = function(hash) {
         if (hash in this.commits) {
             return this.commits[hash];
@@ -40,6 +39,26 @@ function statePrototype() {
         c.sortParents();
 
     }
+    this.getCommits = function (url) {
+        var xmlhttp = new XMLHttpRequest();
+        var thisState = this;
+        xmlhttp.onreadystatechange = function() {
+            if (xmlhttp.readyState == 4) {
+                document.getElementById("info").textContent = xmlhttp.getAllResponseHeaders();
+                if (xmlhttp.status == 200) {
+                    addCommits(thisState,xmlhttp.responseText);
+                }
+            }
+        }
+        xmlhttp.open("GET", url, true);
+        if (this.auth == null) {
+            xmlhttp.setRequestHeader("Authorization", "Basic " + window.btoa(username + ":" + password));
+        }
+        xmlhttp.send();
+    }
+
+    this.commits = {};
+    this.auth = auth;
 }
 function scoreGT(s1, s2) {
     var l = (s1.length > s2.length) ? s2.length : s1.length;
@@ -55,24 +74,6 @@ function scoreGT(s1, s2) {
     } else {
         return false;
     }
-}
-function getCommits(state,url) {
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.onreadystatechange = function() {
-        if (xmlhttp.readyState == 4) {
-            document.getElementById("info").textContent = xmlhttp.getAllResponseHeaders();
-            if (xmlhttp.status == 200) {
-                addCommits(state,xmlhttp.responseText);
-            }
-        }
-    }
-    var username = document.getElementById("auth:username").value;
-    var password = document.getElementById("auth:password").value;
-    xmlhttp.open("GET", url, true);
-    if (username != null && username.length > 0 && password != null && password.length > 0) {
-        xmlhttp.setRequestHeader("Authorization", "Basic " + window.btoa(username + ":" + password));
-    }
-    xmlhttp.send();
 }
 function commit(hash) {
     this.sortParents = function() {
@@ -171,9 +172,18 @@ function addCommits(state, json) {
     });
     // document.getElementById("info").textContent = json;
 }
-var state = new statePrototype();
+var state = null;
 function uiGetCommits() {
-    getCommits(window.state,"https://api.github.com/repos/git/git/commits?sha=master&per_page=100");
+    if (window.state == null) {
+        var auth = null;
+        var username = document.getElementById("auth:username").value;
+        var password = document.getElementById("auth:password").value;
+        if (username != null && username.length > 0 && password != null && password.length > 0) {
+            auth = [username, password];
+        }
+        window.state = new statePrototype(auth);
+    }
+    window.state.getCommits("https://api.github.com/repos/git/git/commits?sha=master&per_page=100");
 }
 </script>
 <body>
