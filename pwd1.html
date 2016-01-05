@@ -7,7 +7,7 @@
 function handleAuth() {
     var username = document.getElementById("user").value;
     var password = document.getElementById("password").value;
-    alert("auth: " + username + ":" + password);
+    document.getElementById("info").textContent = "auth: " + username + ":" + password;
 }
 </script>
 <body>
@@ -16,6 +16,7 @@ function handleAuth() {
  <input id="password" type="password" name="password">
  <button value="Get">Get</button>
 </form>
+<div id="info"></div>
 </body>
 </html>
 
