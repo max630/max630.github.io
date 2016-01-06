@@ -40,6 +40,18 @@ function statePrototype(auth) {
                 document.getElementById("info").textContent = xmlhttp.getAllResponseHeaders();
                 if (xmlhttp.status == 200) {
                     addCommits(thisState,xmlhttp.responseText);
+                    // TODO:
+                    // * pick link header (looks like it's only one); maybe possible to do without regex, with split only
+                    // * limit possible url (to avoid some unexpected jump); basically I don't need more than repo and page number
+                    var linkRegex = /(?:^link: |,)<([a-z0-9_\/\?\&\=\.:-]+)>; rel="next"(?:$|,)/im;
+                    var match = linkRegex.exec(xmlhttp.getAllResponseHeaders());
+                    if (match != null) {
+                        thisState.moreUrl = match[1];
+                        document.getElementById("continue").removeAttribute("hidden");
+                    } else {
+                        thisState.moreUrl = null;
+                        document.getElementById("continue").setAttribute("hidden", "");
+                    }
                 }
             }
         }
@@ -49,9 +61,13 @@ function statePrototype(auth) {
         }
         xmlhttp.send();
     }
+    this.getMoreCommits = function() {
+        this.getCommits(this.moreUrl);
+    }
 
     this.commits = {};
     this.auth = auth;
+    this.moreUrl = null;
 }
 function scoreGT(s1, s2) {
     var l = (s1.length > s2.length) ? s2.length : s1.length;
@@ -166,23 +182,34 @@ var state = null;
 function uiGetCommits() {
     if (window.state == null) {
         var auth = null;
-        var username = document.getElementById("auth:username").value;
-        var password = document.getElementById("auth:password").value;
+        var username = document.getElementById("start:username").value;
+        var password = document.getElementById("start:password").value;
         if (username != null && username.length > 0 && password != null && password.length > 0) {
+            // FIXME: for some reason auth is not used
             auth = [username, password];
         }
         window.state = new statePrototype(auth);
     }
     window.state.getCommits("https://api.github.com/repos/git/git/commits?sha=master&per_page=100");
+    document.getElementById("start").setAttribute("hidden", "");
+}
+function uiContinue() {
+    if (window.state == null) {
+        throw "uiContinue(): Unexpected: state must be defined";
+    }
+    window.state.getMoreCommits();
 }
 </script>
 <body>
-<form id="auth" action="javascript:uiGetCommits();">
- <input id="auth:username" type="text" name="username">
- <input id="auth:password" type="password" name="token">
+<form id="start" action="javascript:uiGetCommits();">
+ <input id="start:username" type="text" name="username">
+ <input id="start:password" type="password" name="token">
  <input type="submit" value="Get">
 </form>
 <ul id="commits"></ul>
+<form id="continue" action="javascript:uiContinue();" hidden>
+ <input type="submit" value="Continue">
+</form>
 <pre id="info"></pre>
 </body>
 </html>
