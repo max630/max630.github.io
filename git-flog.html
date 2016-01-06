@@ -6,13 +6,6 @@
     margin-right: 0.25em;
 }
 
-.sub-folded {
-    display: none;
-}
-
-.sub-normal {
-}
-
 li:target > .desc {
     background-color: orange;
 }
@@ -131,22 +124,19 @@ function commit(hash) {
         this.domSublist = document.createElement("ul");
         // this.domSublist.setAttribute("id", "ul:" + this.hash);
         this.domSelf.appendChild(this.domSublist);
-        this.domSublist.setAttribute("class", "sub-folded");
+        this.domSublist.setAttribute("hidden", "")
         return this.domSublist;
     }
     this.toggle = function() {
         if (this.domSublist == null) {
             throw "sublist not defined: " + this.hash;
         }
-        switch (this.domSublist.className) {
-        case "sub-folded":
-            this.domSublist.className = "sub-normal";
+        if (this.domSublist.hasAttribute("hidden")) {
+            this.domSublist.removeAttribute("hidden");
             this.domToggle.textContent = "[v]";
-            break;
-        default:
-            this.domSublist.className = "sub-folded";
+        } else {
+            this.domSublist.setAttribute("hidden", "");
             this.domToggle.textContent = "[>]";
-            break;
         }
     }
 
@@ -190,7 +180,7 @@ function uiGetCommits() {
 <form id="auth" action="javascript:uiGetCommits();">
  <input id="auth:username" type="text" name="username">
  <input id="auth:password" type="password" name="token">
- <div><input type="submit" value="Get"></div>
+ <input type="submit" value="Get">
 </form>
 <ul id="commits"></ul>
 <pre id="info"></pre>
