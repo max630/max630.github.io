@@ -6,6 +6,22 @@
     margin-right: 0.25em;
 }
 
+.block {
+    display: block;
+}
+
+.inline {
+    display: inline;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.github-avatar {
+    height: 1em;
+}
+
 li:target > .desc {
     background-color: orange;
 }
@@ -13,9 +29,42 @@ li:target > .desc {
 <script>
 function Github(repository) {
     this.activate = function() {
-        document.getElementById("github").removeAttribute("hidden");
+        elShow("github");
+    }
+    this.githubInitAuth = function() {
+        if (this.auth == null) {
+            if (this.request != null) {
+                throw "Busy";
+            }
+            this.request = new XMLHttpRequest();
+            var username = document.getElementById("github:username").value;
+            var password = document.getElementById("github:password").value;
+            if (username != null && username.length > 0 && password != null && password.length > 0) {
+                this.request.open("GET", "https://api.github.com/user", true);
+                this.request.setRequestHeader("Authorization", "Basic " + window.btoa(username + ":" + password));
+                var ghThis = this;
+                this.request.onreadystatechange = function() {
+                    if (ghThis.request.readyState == 4) {
+                        document.getElementById("info").textContent = ghThis.request.getAllResponseHeaders();
+                        if (ghThis.request.status == 200) {
+                            ghThis.auth = [username, password];
+                            var info = JSON.parse(ghThis.request.responseText);
+                            document.getElementById("github:userinfo:name").textContent = info["login"];
+                            document.getElementById("github:userinfo:name").setAttribute("href", info["html_url"]);
+                            document.getElementById("github:userinfo:avatar").setAttribute("src", info["avatar_url"]);
+                            elShow("github:userinfo");
+                            elHide("github:auth");
+                        }
+                        ghThis.request = null;
+                    }
+                }
+                this.request.send();
+            }
+        }
     }
 
+    this.request = null;
+    this.auth = null;
     this.repository = repository;
 }
 function githubTry(url) {
@@ -26,7 +75,10 @@ function githubTry(url) {
         return null;
     }
 }
-function statePrototype(auth) {
+Github.initAuth = function() {
+    window.state.handler.githubInitAuth();
+}
+function statePrototype(handler) {
     this.pickCommit = function(hash) {
         if (hash in this.commits) {
             return this.commits[hash];
@@ -67,10 +119,10 @@ function statePrototype(auth) {
                             }
                         })) {
                         thisState.moreUrl = nextUrl;
-                        document.getElementById("continue").removeAttribute("hidden");
+                        elShow("continue");
                     } else {
                         thisState.moreUrl = null;
-                        document.getElementById("continue").setAttribute("hidden", "");
+                        elHide("continue");
                     }
                 }
             }
@@ -93,7 +145,7 @@ function statePrototype(auth) {
     }
 
     this.commits = {};
-    this.auth = auth;
+    this.handler = handler;
     this.moreUrl = null;
 }
 function scoreGT(s1, s2) {
@@ -202,17 +254,19 @@ function uiStart() {
     var handler = null;
     var url = document.getElementById("start:url").value;
     if ([githubTry].some(function (h) { handler = h(url); return (handler != null) })) {
-        document.getElementById("start").setAttribute("hidden", "");
+        elHide("start");
         handler.activate();
     }
+    window.state = new statePrototype(handler);
 }
 function uiGithubAuthTypeChanged() {
+    // TODO: move into github, make it consider current state
     switch (document.getElementById("github:authtype").value) {
     case "noauth":
-        document.getElementById("github:auth").setAttribute("hidden", "");
+        elHide("github:auth");
         break;
     case "token":
-        document.getElementById("github:auth").removeAttribute("hidden");
+        elShow("github:auth");
         break;
     }
 }
@@ -227,7 +281,7 @@ function uiGetCommits() {
         window.state = new statePrototype(auth);
     }
     window.state.getCommits("https://api.github.com/repos/git/git/commits?sha=master&per_page=100");
-    document.getElementById("start").setAttribute("hidden", "");
+    elHide("start");
 }
 function uiContinue() {
     if (window.state == null) {
@@ -235,21 +289,43 @@ function uiContinue() {
     }
     window.state.getMoreCommits();
 }
+function elShow(elName) {
+    removeClassName(document.getElementById(elName), "hidden");
+}
+function elHide(elName) {
+    addClassName(document.getElementById(elName), "hidden");
+}
+function addClassName(el, name) {
+    var classes = el.className.split(" ");
+    if (!classes.some(function(n) { return (n.trim() == name); })) {
+        el.className += " " + name;
+    } 
+}
+function removeClassName(el, name) {
+    el.className = el.className
+                    .split(" ")
+                    .map(function (s) { return s.trim(); })
+                    .filter(function (s) { return (s != name) })
+                    .join(" ");
+}
 </script>
 <body>
-<form id="start" action="javascript:uiStart();">
+<form id="start" class="block" action="javascript:uiStart();">
  <input id="start:url" type="text" name="url">
  <input type="submit" value="Show This Repository">
 </form>
-<div id="github" hidden>
+<div id="github" class="block hidden">
  Github login: <select id="github:authtype" onChange="uiGithubAuthTypeChanged();">
   <option value="noauth">Anonymous</option>
   <option value="token">Token login</option>
  </select>
- <form id="github:auth" action="javascript:Github.initAuth();" hidden>
+ <form id="github:auth" action="javascript:Github.initAuth();" class="inline hidden">
   User: <input id="github:username" type="text" name="username">
   Token: <input id="github:password" type="password" name="token">
-  <input type="submit" value="Get"> (<a href="https://github.com/settings/tokens/new">Get token (UNCHECK ALL SCOPES)</a>)
+  <input type="submit" value="Login"> (<a href="https://github.com/settings/tokens/new?scopes=&description=git-flog%20token">Get token</a>)
+ </form>
+ <form id="github:userinfo" class="inline hidden">
+  <img id="github:userinfo:avatar" src="" class="github-avatar"> <a id="github:userinfo:name" href=""></a>
  </form>
 </div>
 <ul id="commits"></ul>
