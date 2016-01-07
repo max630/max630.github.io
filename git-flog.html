@@ -319,13 +319,13 @@ function removeClassName(el, name) {
   <option value="noauth">Anonymous</option>
   <option value="token">Token login</option>
  </select>
- <form id="github:auth" action="javascript:Github.initAuth();" class="inline hidden">
+ <form id="github:auth" action="javascript:Github.initAuth();" class="inline">
   User: <input id="github:username" type="text" name="username">
   Token: <input id="github:password" type="password" name="token">
-  <input type="submit" value="Login"> (<a href="https://github.com/settings/tokens/new?scopes=&description=git-flog%20token">Get token</a>)
+  <input type="submit" value="Login"> (<a href="https://github.com/settings/tokens/new?scopes=&description=git-flog%20token" target="_blank">Get token</a>)
  </form>
  <form id="github:userinfo" class="inline hidden">
-  <img id="github:userinfo:avatar" src="" class="github-avatar"> <a id="github:userinfo:name" href=""></a>
+  <img id="github:userinfo:avatar" src="" class="github-avatar"> <a id="github:userinfo:name" href="" target="_blank"></a>
  </form>
 </div>
 <ul id="commits"></ul>
