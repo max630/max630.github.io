@@ -11,6 +11,21 @@ li:target > .desc {
 }
 </style>
 <script>
+function Github(repository) {
+    this.activate = function() {
+        document.getElementById("github").removeAttribute("hidden");
+    }
+
+    this.repository = repository;
+}
+function githubTry(url) {
+    var match = /^(https:\/\/github\.com\/|git@githu\.com:|git:\/\/github\.com\/)([^\/]+)\/([^\/]+)($|\.git|\/)/i.exec(url);
+    if (match != null) {
+        return new Github(match[2] + "/" + match[3]);
+    } else {
+        return null;
+    }
+}
 function statePrototype(auth) {
     this.pickCommit = function(hash) {
         if (hash in this.commits) {
@@ -183,6 +198,24 @@ function commitInfo(desc, parents) {
     this.parents = parents;
 }
 var state = null;
+function uiStart() {
+    var handler = null;
+    var url = document.getElementById("start:url").value;
+    if ([githubTry].some(function (h) { handler = h(url); return (handler != null) })) {
+        document.getElementById("start").setAttribute("hidden", "");
+        handler.activate();
+    }
+}
+function uiGithubAuthTypeChanged() {
+    switch (document.getElementById("github:authtype").value) {
+    case "noauth":
+        document.getElementById("github:auth").setAttribute("hidden", "");
+        break;
+    case "token":
+        document.getElementById("github:auth").removeAttribute("hidden");
+        break;
+    }
+}
 function uiGetCommits() {
     if (window.state == null) {
         var auth = null;
@@ -204,11 +237,21 @@ function uiContinue() {
 }
 </script>
 <body>
-<form id="start" action="javascript:uiGetCommits();">
- <input id="start:username" type="text" name="username">
- <input id="start:password" type="password" name="token">
- <input type="submit" value="Get">
+<form id="start" action="javascript:uiStart();">
+ <input id="start:url" type="text" name="url">
+ <input type="submit" value="Show This Repository">
 </form>
+<div id="github" hidden>
+ Github login: <select id="github:authtype" onChange="uiGithubAuthTypeChanged();">
+  <option value="noauth">Anonymous</option>
+  <option value="token">Token login</option>
+ </select>
+ <form id="github:auth" action="javascript:Github.initAuth();" hidden>
+  User: <input id="github:username" type="text" name="username">
+  Token: <input id="github:password" type="password" name="token">
+  <input type="submit" value="Get"> (<a href="https://github.com/settings/tokens/new">Get token (UNCHECK ALL SCOPES)</a>)
+ </form>
+</div>
 <ul id="commits"></ul>
 <form id="continue" action="javascript:uiContinue();" hidden>
  <input type="submit" value="Continue">
