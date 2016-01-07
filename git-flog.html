@@ -40,13 +40,18 @@ function statePrototype(auth) {
                 document.getElementById("info").textContent = xmlhttp.getAllResponseHeaders();
                 if (xmlhttp.status == 200) {
                     addCommits(thisState,xmlhttp.responseText);
-                    // TODO:
-                    // * pick link header (looks like it's only one); maybe possible to do without regex, with split only
-                    // * limit possible url (to avoid some unexpected jump); basically I don't need more than repo and page number
-                    var linkRegex = /(?:^link: |,)<([a-z0-9_\/\?\&\=\.:-]+)>; rel="next"(?:$|,)/im;
-                    var match = linkRegex.exec(xmlhttp.getAllResponseHeaders());
-                    if (match != null) {
-                        thisState.moreUrl = match[1];
+                    var nextUrl = null;
+                    if (xmlhttp.getResponseHeader("link").split(",").some(function (link) {
+                            var cs = link.split(";");
+                            if (/^\s*rel="next"\s*$/.test(cs[1])) {
+                                var urlPattern = /^\s*<(https:\/\/api\.github\.com\/repositories\/[0-9]+\/commits\?sha\=[a-z0-9_\/%-]+\&per_page\=[0-9]+\&page\=[0-9]+)>$/i;
+                                nextUrl = urlPattern.exec(cs[0])[1];
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        })) {
+                        thisState.moreUrl = nextUrl;
                         document.getElementById("continue").removeAttribute("hidden");
                     } else {
                         thisState.moreUrl = null;
