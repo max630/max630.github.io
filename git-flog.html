@@ -64,6 +64,13 @@ function statePrototype(auth) {
     this.getMoreCommits = function() {
         this.getCommits(this.moreUrl);
     }
+    this.addCommits = function(json) {
+        var cs = JSON.parse(json);
+        cs.forEach(function(c){
+            var desc = c.commit.author.email + ": " + c.commit.message.split("\n")[0];
+            this.addCommit(c.sha,desc,c.parents.map(function(p) { return p.sha } ));
+        });
+    }
 
     this.commits = {};
     this.auth = auth;
@@ -169,14 +176,6 @@ function commit(hash) {
 function commitInfo(desc, parents) {
     this.desc = desc;
     this.parents = parents;
-}
-function addCommits(state, json) {
-    var cs = JSON.parse(json);
-    cs.forEach(function(c){
-        var desc = c.commit.author.email + ": " + c.commit.message.split("\n")[0];
-        state.addCommit(c.sha,desc,c.parents.map(function(p) { return p.sha } ));
-    });
-    // document.getElementById("info").textContent = json;
 }
 var state = null;
 function uiGetCommits() {
