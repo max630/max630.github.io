@@ -56,8 +56,8 @@ function statePrototype(auth) {
             }
         }
         xmlhttp.open("GET", url, true);
-        if (this.auth == null) {
-            xmlhttp.setRequestHeader("Authorization", "Basic " + window.btoa(username + ":" + password));
+        if (this.auth != null) {
+            xmlhttp.setRequestHeader("Authorization", "Basic " + window.btoa(this.auth[0] + ":" + this.auth[1]));
         }
         xmlhttp.send();
     }
@@ -185,7 +185,6 @@ function uiGetCommits() {
         var username = document.getElementById("start:username").value;
         var password = document.getElementById("start:password").value;
         if (username != null && username.length > 0 && password != null && password.length > 0) {
-            // FIXME: for some reason auth is not used
             auth = [username, password];
         }
         window.state = new statePrototype(auth);
