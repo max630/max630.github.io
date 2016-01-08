@@ -30,6 +30,7 @@ li:target > .desc {
 function Github(repository) {
     this.activate = function() {
         elShow("github");
+        this.githubSetAuthType();
     }
     this.githubInitAuth = function() {
         if (this.auth == null) {
@@ -53,7 +54,8 @@ function Github(repository) {
                             document.getElementById("github:userinfo:name").setAttribute("href", info["html_url"]);
                             document.getElementById("github:userinfo:avatar").setAttribute("src", info["avatar_url"]);
                             elShow("github:userinfo");
-                            elHide("github:auth");
+                            elHide("github:login");
+                            elHide("github:authtype");
                         }
                         ghThis.request = null;
                     }
@@ -107,6 +109,16 @@ function Github(repository) {
         }
         this.request.send();
     }
+    this.githubSetAuthType = function() {
+        switch (document.getElementById("github:authtype").value) {
+        case "noauth":
+            elHide("github:auth");
+            break;
+        case "token":
+            elShow("github:auth");
+            break;
+        }
+    }
 
     this.request = null;
     this.auth = null;
@@ -124,6 +136,9 @@ function githubTry(url) {
 }
 Github.initAuth = function() {
     window.state.handler.githubInitAuth();
+}
+Github.setAuthType = function() {
+    window.state.handler.githubSetAuthType();
 }
 function statePrototype(handler) {
     this.pickCommit = function(hash) {
@@ -267,14 +282,6 @@ function uiStart() {
 }
 function uiGithubAuthTypeChanged() {
     // TODO: move into github, make it consider current state
-    switch (document.getElementById("github:authtype").value) {
-    case "noauth":
-        elHide("github:auth");
-        break;
-    case "token":
-        elShow("github:auth");
-        break;
-    }
 }
 function uiContinue() {
     if (window.state == null) {
@@ -308,22 +315,24 @@ function removeClassName(el, name) {
  <input type="submit" value="Show This Repository">
 </form>
 <div id="github" class="block hidden">
- Github login: <select id="github:authtype" onChange="uiGithubAuthTypeChanged();">
-  <option value="noauth">Anonymous</option>
+ Github login: <select id="github:authtype" onChange="Github.setAuthType();">
+  <option value="noauth" selected>Anonymous</option>
   <option value="token">Token login</option>
  </select>
- <form id="github:auth" action="javascript:Github.initAuth();" class="inline">
-  User: <input id="github:username" type="text" name="username">
-  Token: <input id="github:password" type="password" name="token">
-  <input type="submit" value="Login"> (<a href="https://github.com/settings/tokens/new?scopes=&description=git-flog%20token" target="_blank">Get token</a>)
- </form>
- <form id="github:userinfo" class="inline hidden">
-  <img id="github:userinfo:avatar" src="" class="github-avatar"> <a id="github:userinfo:name" href="" target="_blank"></a>
- </form>
+ <div id="github:auth" class="inline hidden">
+  <form id="github:login" action="javascript:Github.initAuth();" class="inline">
+   User: <input id="github:username" type="text" name="username">
+   Token: <input id="github:password" type="password" name="token">
+   <input type="submit" value="Login"> (<a href="https://github.com/settings/tokens/new?scopes=&description=git-flog%20token" target="_blank">Get token</a>)
+  </form>
+  <form id="github:userinfo" class="inline hidden">
+   <img id="github:userinfo:avatar" src="" class="github-avatar"> <a id="github:userinfo:name" href="" target="_blank"></a>
+  </form>
+ </div>
 </div>
 <ul id="commits"></ul>
 <form id="continue" action="javascript:uiContinue();">
- <input type="submit" value="Continue">
+ <input type="submit" value="Continue"> <!-- TODO: properly show it -->
 </form>
 <pre id="info"></pre>
 </body>
