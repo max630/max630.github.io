@@ -64,6 +64,9 @@ function Github(repository) {
             }
         }
     }
+    // make refs here to have only one in heap
+    var urlPrefix = "https://github.com/" + repository + "/commit/";
+    var makeUrl = function(h) { return urlPrefix + h; };
     this.getMoreCommits = function(handleCommit) {
         if (this.request != null) {
             throw "Busy";
@@ -84,7 +87,7 @@ function Github(repository) {
                     var cs = JSON.parse(ghThis.request.responseText);
                     cs.forEach(function(c){
                         var desc = c.commit.author.email + ": " + c.commit.message.split("\n")[0];
-                        handleCommit(c.sha,desc,c.parents.map(function(p) { return p.sha } ));
+                        handleCommit(c.sha,desc,c.parents.map(function(p) { return p.sha } ),makeUrl);
                     });
                     var nextUrl = null;
                     if (ghThis.request.getResponseHeader("link").split(",").some(function (link) {
@@ -152,20 +155,20 @@ function statePrototype(handler) {
             return c;
         }
     }
-    this.addCommit = function(hash,desc,parents) {
+    this.addCommit = function(hash,desc,parents,makeUrl) {
         var c = this.pickCommit(hash);
         if (c.info != null) {
             // duplicate; nothing to do
             return;
         }
         var parent_objects = parents.map(function(p){ return this.pickCommit(p); }, this);
-        c.info = new commitInfo(desc,parent_objects);
+        c.info = new commitInfo(desc,parent_objects,makeUrl);
         c.sortParents();
 
     }
     this.getMoreCommits = function() {
         var sThis = this;
-        this.handler.getMoreCommits(function(h,d,p) { sThis.addCommit(h,d,p) });
+        this.handler.getMoreCommits(function(h,d,p,m) { sThis.addCommit(h,d,p,m) });
     }
 
     this.commits = {};
@@ -186,7 +189,7 @@ function scoreGT(s1, s2) {
         return false;
     }
 }
-function commit(hash) {
+function commit(hash, makeUrl) {
     this.sortParents = function() {
         if (this.info == null) {
             return;
@@ -217,7 +220,7 @@ function commit(hash) {
         this.domSelf.id = "li:" + this.hash;
         var a = document.createElement("a");
         a.className = "desc";
-        a.setAttribute("href", "https://github.com/git/git/commit/" + hash);
+        a.setAttribute("href", this.info.makeUrl(this.hash));
         a.appendChild(document.createTextNode(this.info.desc));
         this.domSelf.appendChild(a);
         this.domSelf.appendChild(document.createTextNode(JSON.stringify(this.score)));
@@ -268,9 +271,10 @@ function commit(hash) {
     this.domToggle = null;
     this.domLinks = [];
 }
-function commitInfo(desc, parents) {
+function commitInfo(desc, parents,makeUrl) {
     this.desc = desc;
     this.parents = parents;
+    this.makeUrl = makeUrl;
 }
 var state = null;
 function uiStart() {
