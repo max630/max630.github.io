@@ -62,9 +62,56 @@ function Github(repository) {
             }
         }
     }
+    this.getMoreCommits = function(handleCommit) {
+        if (this.request != null) {
+            throw "Busy";
+        }
+        if (this.nextUrl == null) {
+            throw "Nothing to get more";
+        }
+        this.request = new XMLHttpRequest();
+        this.request.open("GET", this.nextUrl, true);
+        if (this.auth != null) {
+            this.request.setRequestHeader("Authorization", "Basic " + window.btoa(this.auth[0] + ":" + this.auth[1]));
+        }
+        var ghThis = this;
+        this.request.onreadystatechange = function() {
+            if (ghThis.request.readyState == 4) {
+                document.getElementById("info").textContent = ghThis.request.getAllResponseHeaders();
+                if (ghThis.request.status == 200) {
+                    var cs = JSON.parse(ghThis.request.responseText);
+                    cs.forEach(function(c){
+                        var desc = c.commit.author.email + ": " + c.commit.message.split("\n")[0];
+                        handleCommit(c.sha,desc,c.parents.map(function(p) { return p.sha } ));
+                    });
+                    var nextUrl = null;
+                    if (ghThis.request.getResponseHeader("link").split(",").some(function (link) {
+                            var cs = link.split(";");
+                            if (/^\s*rel="next"\s*$/.test(cs[1])) {
+                                var urlPattern = /^\s*<(https:\/\/api\.github\.com\/repositories\/[0-9]+\/commits\?sha\=[a-z0-9_\/%-]+\&per_page\=[0-9]+\&page\=[0-9]+)>$/i;
+                                nextUrl = urlPattern.exec(cs[0])[1];
+                                return true;
+                            } else {
+                                return false;
+                            }
+                        })) {
+                        ghThis.nextUrl = nextUrl;
+                        elShow("continue");
+                    } else {
+                        ghThis.nextUrl = null;
+                        elHide("continue");
+                    }
+                }
+                ghThis.request = null;
+            }
+        }
+        this.request.send();
+    }
 
     this.request = null;
     this.auth = null;
+    // TODO: use custom branch
+    this.nextUrl = "https://api.github.com/repos/" + repository + "/commits?sha=master&per_page=100";
     this.repository = repository;
 }
 function githubTry(url) {
@@ -99,54 +146,13 @@ function statePrototype(handler) {
         c.sortParents();
 
     }
-    this.getCommits = function (url) {
-        var xmlhttp = new XMLHttpRequest();
-        var thisState = this;
-        xmlhttp.onreadystatechange = function() {
-            if (xmlhttp.readyState == 4) {
-                document.getElementById("info").textContent = xmlhttp.getAllResponseHeaders();
-                if (xmlhttp.status == 200) {
-                    addCommits(thisState,xmlhttp.responseText);
-                    var nextUrl = null;
-                    if (xmlhttp.getResponseHeader("link").split(",").some(function (link) {
-                            var cs = link.split(";");
-                            if (/^\s*rel="next"\s*$/.test(cs[1])) {
-                                var urlPattern = /^\s*<(https:\/\/api\.github\.com\/repositories\/[0-9]+\/commits\?sha\=[a-z0-9_\/%-]+\&per_page\=[0-9]+\&page\=[0-9]+)>$/i;
-                                nextUrl = urlPattern.exec(cs[0])[1];
-                                return true;
-                            } else {
-                                return false;
-                            }
-                        })) {
-                        thisState.moreUrl = nextUrl;
-                        elShow("continue");
-                    } else {
-                        thisState.moreUrl = null;
-                        elHide("continue");
-                    }
-                }
-            }
-        }
-        xmlhttp.open("GET", url, true);
-        if (this.auth != null) {
-            xmlhttp.setRequestHeader("Authorization", "Basic " + window.btoa(this.auth[0] + ":" + this.auth[1]));
-        }
-        xmlhttp.send();
-    }
     this.getMoreCommits = function() {
-        this.getCommits(this.moreUrl);
-    }
-    this.addCommits = function(json) {
-        var cs = JSON.parse(json);
-        cs.forEach(function(c){
-            var desc = c.commit.author.email + ": " + c.commit.message.split("\n")[0];
-            this.addCommit(c.sha,desc,c.parents.map(function(p) { return p.sha } ));
-        });
+        var sThis = this;
+        this.handler.getMoreCommits(function(h,d,p) { sThis.addCommit(h,d,p) });
     }
 
     this.commits = {};
     this.handler = handler;
-    this.moreUrl = null;
 }
 function scoreGT(s1, s2) {
     var l = (s1.length > s2.length) ? s2.length : s1.length;
@@ -270,19 +276,6 @@ function uiGithubAuthTypeChanged() {
         break;
     }
 }
-function uiGetCommits() {
-    if (window.state == null) {
-        var auth = null;
-        var username = document.getElementById("start:username").value;
-        var password = document.getElementById("start:password").value;
-        if (username != null && username.length > 0 && password != null && password.length > 0) {
-            auth = [username, password];
-        }
-        window.state = new statePrototype(auth);
-    }
-    window.state.getCommits("https://api.github.com/repos/git/git/commits?sha=master&per_page=100");
-    elHide("start");
-}
 function uiContinue() {
     if (window.state == null) {
         throw "uiContinue(): Unexpected: state must be defined";
@@ -329,7 +322,7 @@ function removeClassName(el, name) {
  </form>
 </div>
 <ul id="commits"></ul>
-<form id="continue" action="javascript:uiContinue();" hidden>
+<form id="continue" action="javascript:uiContinue();">
  <input type="submit" value="Continue">
 </form>
 <pre id="info"></pre>
