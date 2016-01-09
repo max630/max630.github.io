@@ -86,7 +86,7 @@ function Github(repository) {
                 if (ghThis.request.status == 200) {
                     var cs = JSON.parse(ghThis.request.responseText);
                     cs.forEach(function(c){
-                        var desc = c.commit.author.email + ": " + c.commit.message.split("\n")[0];
+                        var desc = [c.commit.author.email, c.commit.message.split("\n")[0]];
                         handleCommit(c.sha,desc,c.parents.map(function(p) { return p.sha } ),makeUrl);
                     });
                     var nextUrl = null;
@@ -221,7 +221,7 @@ function commit(hash, makeUrl) {
         var a = document.createElement("a");
         a.className = "desc";
         a.setAttribute("href", this.info.makeUrl(this.hash));
-        a.appendChild(document.createTextNode(this.info.desc));
+        a.appendChild(document.createTextNode(this.info.desc[0] + ": " + this.info.desc[1]));
         this.domSelf.appendChild(a);
         this.domSelf.appendChild(document.createTextNode(JSON.stringify(this.score)));
         var base = (this.treeParent == null) ? document.getElementById("commits")
