@@ -216,17 +216,20 @@ function commit(hash, makeUrl) {
             document.getElementById("commits").removeChild(this.domSelf);
             this.domSelf = null;
         }
-        this.domSelf = document.createElement("li");
+        this.domSelf = document.createElement("tr");
         this.domSelf.id = "li:" + this.hash;
+        this.domSelf.appendChild(document.createElement("td"));
+        this.domSelf.appendChild(document.createElement("td")); // subject
         var a = document.createElement("a");
         a.className = "desc";
         a.setAttribute("href", this.info.makeUrl(this.hash));
-        a.appendChild(document.createTextNode(this.info.desc[0] + ": " + this.info.desc[1]));
-        this.domSelf.appendChild(a);
-        this.domSelf.appendChild(document.createTextNode(JSON.stringify(this.score)));
-        var base = (this.treeParent == null) ? document.getElementById("commits")
-                    : this.treeParent.pickSublist();
-        base.appendChild(this.domSelf);
+        a.textContent = this.info.desc[1];
+        this.domSelf.childNodes[1].appendChild(a);
+        this.domSelf.appendChild(document.createElement("td")); // author
+        this.domSelf.childNodes[2].textContent = this.info.desc[0];
+        this.domSelf.appendChild(document.createElement("td")); // score
+        this.domSelf.childNodes[3].textContent = JSON.stringify(this.score);
+        document.getElementById("commits").appendChild(this.domSelf);
     }
     this.pickSublist = function() {
         if (this.domSelf == null) {
@@ -241,11 +244,11 @@ function commit(hash, makeUrl) {
         // this.domToggle.setAttribute("id", "tg:" + this.hash);
         this.domToggle.setAttribute("href", "javascript:state.commits[\"" + this.hash + "\"].toggle();");
         this.domToggle.setAttribute("class", "toggle");
-        this.domSelf.insertBefore(this.domToggle, this.domSelf.childNodes[0]);
-        this.domSublist = document.createElement("ul");
+        this.domSelf.childNodes[0].appendChild(this.domToggle);
+        // this.domSublist = document.createElement("ul");
         // this.domSublist.setAttribute("id", "ul:" + this.hash);
-        this.domSelf.appendChild(this.domSublist);
-        this.domSublist.setAttribute("hidden", "")
+        // this.domSelf.appendChild(this.domSublist);
+        // this.domSublist.setAttribute("hidden", "")
         return this.domSublist;
     }
     this.toggle = function() {
@@ -336,7 +339,7 @@ function removeClassName(el, name) {
   </form>
  </div>
 </div>
-<ul id="commits"></ul>
+<table id="commits"></table>
 <form id="continue" action="javascript:uiContinue();">
  <input type="submit" value="Continue"> <!-- TODO: properly show it -->
 </form>
