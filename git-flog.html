@@ -218,12 +218,10 @@ function commit(hash, makeUrl) {
         }
         this.domSelf = document.createElement("li");
         this.domSelf.id = "li:" + this.hash;
-        var a = document.createElement("a");
-        a.className = "desc";
-        a.setAttribute("href", this.info.makeUrl(this.hash));
-        a.appendChild(document.createTextNode(this.info.desc[0] + ": " + this.info.desc[1]));
-        this.domSelf.appendChild(a);
-        this.domSelf.appendChild(document.createTextNode(JSON.stringify(this.score)));
+        this.domSelf.innerHTML = '<a class="desc"></a><span></span>';
+        this.domSelf.childNodes[0].setAttribute("href", this.info.makeUrl(this.hash));
+        this.domSelf.childNodes[0].textContent = this.info.desc[0] + ": " + this.info.desc[1];
+        this.domSelf.childNodes[1].textContent = JSON.stringify(this.score);
         var base = (this.treeParent == null) ? document.getElementById("commits")
                     : this.treeParent.pickSublist();
         base.appendChild(this.domSelf);
