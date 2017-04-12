@@ -333,8 +333,13 @@ function removeClassName(el, name) {
                     .join(" ");
 }
 function showInfoPopup(hash) {
+    var c = window.state.pickCommit(hash);
+    document.getElementById("info-popup-hash").innerText = hash;
+    document.getElementById("info-popup-hash").setAttribute("href", c.info.makeUrl(hash));
+    document.getElementById("info-popup-author-name").innerText = c.info.desc[0];
+    document.getElementById("info-popup-commit-message").innerText = c.info.desc[1];
     var p = document.getElementById("info-popup");
-    p.classList.toggle("popupcontentshow");
+    p.classList.add("popupcontentshow");
     var li = document.getElementById("li:" + hash);
     li.appendChild(p);
 }
@@ -372,11 +377,11 @@ function showInfoPopup(hash) {
         <img src="" id="info-popup-author-icon">
         <span id="info-popup-author-name"></span>
     </a><span id="info-popup-author-time"></span></p>
-<p>Committer:
+<!-- <p>Committer:
     <a href="" id="info-popup-committer">
         <img src="" id="info-popup-committer-icon">
         <span id="info-popup-committer-name"></span>
-    </a><span id="info-popup-committer-time"></span></p>
+    </a><span id="info-popup-committer-time"></span></p> -->
 <pre id="info-popup-commit-message">
 </pre>
 </div>
