@@ -39,7 +39,7 @@ function Github(repository) {
             }
             this.request = new XMLHttpRequest();
             var username = document.getElementById("github:username").value;
-            var password = document.getElementById("github:password").value;
+            var password = document.getElementById("github:password").value.trim();
             if (username != null && username.length > 0 && password != null && password.length > 0) {
                 this.request.open("GET", "https://api.github.com/user", true);
                 this.request.setRequestHeader("Authorization", "Basic " + window.btoa(username + ":" + password));
