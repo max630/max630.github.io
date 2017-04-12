@@ -22,6 +22,20 @@
     height: 1em;
 }
 
+.popupcontent {
+    visibility: hidden;
+    position: absolute;
+    z-index: -1;
+    color: WindowText;
+    background-color: Window;
+    border: 1px solid ActiveBorder;
+}
+
+.popupcontentshow {
+    visibility: visible;
+    z-index: 1;
+}
+
 li:target > .desc {
     background-color: orange;
 }
@@ -224,7 +238,8 @@ function commit(hash, makeUrl) {
         this.domSelf = document.createElement("li");
         this.domSelf.id = "li:" + this.hash;
         this.domSelf.innerHTML = '<a class="desc"></a><span></span>';
-        this.domSelf.childNodes[0].setAttribute("href", this.info.makeUrl(this.hash));
+        // this.domSelf.childNodes[0].setAttribute("href", this.info.makeUrl(this.hash));
+        this.domSelf.childNodes[0].setAttribute("onclick", 'showInfoPopup("' + this.hash + '")');
         this.domSelf.childNodes[0].textContent = this.info.desc[0] + ": " + this.info.desc[1];
         this.domSelf.childNodes[1].textContent = JSON.stringify(this.score);
         var base = (this.treeParent == null) ? document.getElementById("commits")
@@ -317,6 +332,12 @@ function removeClassName(el, name) {
                     .filter(function (s) { return (s != name) })
                     .join(" ");
 }
+function showInfoPopup(hash) {
+    var p = document.getElementById("info-popup");
+    p.classList.toggle("popupcontentshow");
+    var li = document.getElementById("li:" + hash);
+    li.appendChild(p);
+}
 </script>
 <body>
 <form id="start" class="block" action="javascript:uiStart();">
@@ -344,5 +365,20 @@ function removeClassName(el, name) {
  <input type="submit" value="Continue"> <!-- TODO: properly show it -->
 </form>
 <pre id="info"></pre>
+<div class="popupcontent" id="info-popup">
+<p><a href="" id="info-popup-hash"></a></p>
+<p>Author:
+    <a href="" id="info-popup-author">
+        <img src="" id="info-popup-author-icon">
+        <span id="info-popup-author-name"></span>
+    </a><span id="info-popup-author-time"></span></p>
+<p>Committer:
+    <a href="" id="info-popup-committer">
+        <img src="" id="info-popup-committer-icon">
+        <span id="info-popup-committer-name"></span>
+    </a><span id="info-popup-committer-time"></span></p>
+<pre id="info-popup-commit-message">
+</pre>
+</div>
 </body>
 </html>
