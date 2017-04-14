@@ -1,5 +1,13 @@
 <!DOCTYPE html> 
 <html>
+<!--
+TODO:
+* make indication that branch is completed
+* octopus merges
+* future branches
+* popup with commit info
+* nice line (as info went to popup)
+-->
 <meta charset="UTF-8">
 <style>
 .toggle {
@@ -49,7 +57,7 @@ function Github(repository) {
     this.githubInitAuth = function() {
         if (this.auth == null) {
             if (this.request != null) {
-                throw "Busy";
+                throw ("Busy: state=" + this.request.readyState);
             }
             this.request = new XMLHttpRequest();
             var username = document.getElementById("github:username").value;
@@ -88,7 +96,7 @@ function Github(repository) {
     var makeUrl = function(h) { return urlPrefix + h; };
     this.getMoreCommits = function(handleCommit) {
         if (this.request != null) {
-            throw "Busy";
+            throw ("Busy: state=" + this.request.readyState);
         }
         if (this.nextUrl == null) {
             throw "Nothing to get more";
