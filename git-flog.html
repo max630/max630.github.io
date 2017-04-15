@@ -25,6 +25,11 @@
 li:target > .desc {
     background-color: orange;
 }
+
+.info {
+    height: 25em;
+    overflow: scroll;
+}
 </style>
 <script>
 function Github(repository) {
@@ -49,7 +54,6 @@ function Github(repository) {
                 var ghThis = this;
                 this.request.onreadystatechange = function() {
                     if (ghThis.request.readyState == 4) {
-                        document.getElementById("info").textContent = ghThis.request.getAllResponseHeaders();
                         if (ghThis.request.status == 200) {
                             ghThis.auth = [username, password];
                             var info = JSON.parse(ghThis.request.responseText);
@@ -59,6 +63,9 @@ function Github(repository) {
                             elShow("github:userinfo");
                             elHide("github:login");
                             elHide("github:authtype");
+                            document.getElementById("info").textContent += "login ok, user: " + info["login"] + "\n";
+                        } else {
+                            document.getElementById("info").textContent += "login failed, status: " + ghThis.request.status + "\n";
                         }
                         ghThis.request = null;
                     }
@@ -87,8 +94,12 @@ function Github(repository) {
         var ghThis = this;
         this.request.onreadystatechange = function() {
             if (ghThis.request.readyState == 4) {
-                document.getElementById("info").textContent = ghThis.request.getAllResponseHeaders();
                 if (ghThis.request.status == 200) {
+                    document.getElementById("info").textContent +=
+                        "response: "
+                        + "l_rem: " + ghThis.request.getResponseHeader("X-RateLimit-Remaining")
+                        + ", l_reset: " + new Date(ghThis.request.getResponseHeader("X-RateLimit-Reset") * 1000)
+                        + "\n";
                     var cs = JSON.parse(ghThis.request.responseText);
                     cs.forEach(function(c){
                         var desc = [c.commit.author.email, c.commit.message.split("\n")[0]];
@@ -111,6 +122,8 @@ function Github(repository) {
                         ghThis.nextUrl = null;
                         elHide("continue");
                     }
+                } else {
+                    document.getElementById("info").textContent += "fetch failed, status: " + ghThis.request.status + "\n";
                 }
                 ghThis.request = null;
             }
@@ -201,7 +214,7 @@ function commit(hash, makeUrl) {
         }
         var pl = this.info.parents.length;
         var handleParent = function(treeParent,p,pscore){
-            if (scoreGT(pscore,p.score)) {
+            if (scoreGT(pscore,p.score)) { // FIXME: p is undefined
                 p.score = pscore;
                 p.treeParent = treeParent;
                 p.sortParents();
