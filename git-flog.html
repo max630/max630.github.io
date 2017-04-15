@@ -54,20 +54,23 @@ function Github(repository) {
                 var ghThis = this;
                 this.request.onreadystatechange = function() {
                     if (ghThis.request.readyState == 4) {
-                        if (ghThis.request.status == 200) {
-                            ghThis.auth = [username, password];
-                            var info = JSON.parse(ghThis.request.responseText);
-                            document.getElementById("github:userinfo:name").textContent = info["login"];
-                            document.getElementById("github:userinfo:name").setAttribute("href", info["html_url"]);
-                            document.getElementById("github:userinfo:avatar").setAttribute("src", info["avatar_url"]);
-                            elShow("github:userinfo");
-                            elHide("github:login");
-                            elHide("github:authtype");
-                            document.getElementById("info").textContent += "login ok, user: " + info["login"] + "\n";
-                        } else {
-                            document.getElementById("info").textContent += "login failed, status: " + ghThis.request.status + "\n";
+                        try {
+                            if (ghThis.request.status == 200) {
+                                ghThis.auth = [username, password];
+                                var info = JSON.parse(ghThis.request.responseText);
+                                document.getElementById("github:userinfo:name").textContent = info["login"];
+                                document.getElementById("github:userinfo:name").setAttribute("href", info["html_url"]);
+                                document.getElementById("github:userinfo:avatar").setAttribute("src", info["avatar_url"]);
+                                elShow("github:userinfo");
+                                elHide("github:login");
+                                elHide("github:authtype");
+                                document.getElementById("info").textContent += "login ok, user: " + info["login"] + "\n";
+                            } else {
+                                document.getElementById("info").textContent += "login failed, status: " + ghThis.request.status + "\n";
+                            }
+                        } finally {
+                            ghThis.request = null;
                         }
-                        ghThis.request = null;
                     }
                 }
                 this.request.send();
@@ -94,38 +97,41 @@ function Github(repository) {
         var ghThis = this;
         this.request.onreadystatechange = function() {
             if (ghThis.request.readyState == 4) {
-                if (ghThis.request.status == 200) {
-                    document.getElementById("info").textContent +=
-                        "response: "
-                        + "l_rem: " + ghThis.request.getResponseHeader("X-RateLimit-Remaining")
-                        + ", l_reset: " + new Date(ghThis.request.getResponseHeader("X-RateLimit-Reset") * 1000)
-                        + "\n";
-                    var cs = JSON.parse(ghThis.request.responseText);
-                    cs.forEach(function(c){
-                        var desc = [c.commit.author.email, c.commit.message.split("\n")[0]];
-                        handleCommit(c.sha,desc,c.parents.map(function(p) { return p.sha } ),makeUrl);
-                    });
-                    var nextUrl = null;
-                    if (ghThis.request.getResponseHeader("link").split(",").some(function (link) {
-                            var cs = link.split(";");
-                            if (/^\s*rel="next"\s*$/.test(cs[1])) {
-                                var urlPattern = /^\s*<(https:\/\/api\.github\.com\/repositories\/[0-9]+\/commits\?sha\=[a-z0-9_\/%-]+\&per_page\=[0-9]+\&page\=[0-9]+)>$/i;
-                                nextUrl = urlPattern.exec(cs[0])[1];
-                                return true;
-                            } else {
-                                return false;
-                            }
-                        })) {
-                        ghThis.nextUrl = nextUrl;
-                        elShow("continue");
+                try {
+                    if (ghThis.request.status == 200) {
+                        document.getElementById("info").textContent +=
+                            "response: "
+                            + "l_rem: " + ghThis.request.getResponseHeader("X-RateLimit-Remaining")
+                            + ", l_reset: " + new Date(ghThis.request.getResponseHeader("X-RateLimit-Reset") * 1000)
+                            + "\n";
+                        var cs = JSON.parse(ghThis.request.responseText);
+                        cs.forEach(function(c){
+                            var desc = [c.commit.author.email, c.commit.message.split("\n")[0]];
+                            handleCommit(c.sha,desc,c.parents.map(function(p) { return p.sha } ),makeUrl);
+                        });
+                        var nextUrl = null;
+                        if (ghThis.request.getResponseHeader("link").split(",").some(function (link) {
+                                var cs = link.split(";");
+                                if (/^\s*rel="next"\s*$/.test(cs[1])) {
+                                    var urlPattern = /^\s*<(https:\/\/api\.github\.com\/repositories\/[0-9]+\/commits\?sha\=[a-z0-9_\/%-]+\&per_page\=[0-9]+\&page\=[0-9]+)>$/i;
+                                    nextUrl = urlPattern.exec(cs[0])[1];
+                                    return true;
+                                } else {
+                                    return false;
+                                }
+                            })) {
+                            ghThis.nextUrl = nextUrl;
+                            elShow("continue");
+                        } else {
+                            ghThis.nextUrl = null;
+                            elHide("continue");
+                        }
                     } else {
-                        ghThis.nextUrl = null;
-                        elHide("continue");
+                        document.getElementById("info").textContent += "fetch failed, status: " + ghThis.request.status + "\n";
                     }
-                } else {
-                    document.getElementById("info").textContent += "fetch failed, status: " + ghThis.request.status + "\n";
+                } finally {
+                    ghThis.request = null;
                 }
-                ghThis.request = null;
             }
         }
         this.request.send();
