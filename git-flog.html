@@ -222,9 +222,15 @@ function commit(hash, makeUrl) {
         var pl = this.info.parents.length;
         var handleParent = function(treeParent,p,pscore){
             if (scoreGT(pscore,p.score)) {
+                var oldTreeParent = p.treeParent;
                 p.score = pscore;
                 p.treeParent = treeParent;
                 p.sortParents();
+                if (oldTreeParent != null) {
+                    p.renderLink(oldTreeParent);
+                }
+            } else {
+                p.renderLink(treeParent);
             }
         }
         if (pl > 0) {
@@ -239,7 +245,9 @@ function commit(hash, makeUrl) {
             }
         }
 
-        // TODO: bring this separately this
+        this.render();
+    }
+    this.render = function() {
         if (this.domSelf != null) {
             document.getElementById("commits").removeChild(this.domSelf);
             this.domSelf = null;
@@ -253,6 +261,13 @@ function commit(hash, makeUrl) {
         var base = (this.treeParent == null) ? document.getElementById("commits")
                     : this.treeParent.pickSublist();
         base.appendChild(this.domSelf);
+    }
+    this.renderLink = function(treeParent) {
+        var dom = document.createElement("li");
+        dom.innerHTML = "<a href=\"#li:" + this.hash + "\">-> </a>";
+        if (treeParent.domSelf != null) {
+            treeParent.domSelf.appendChild(dom);
+        }
     }
     this.pickSublist = function() {
         if (this.domSelf == null) {
