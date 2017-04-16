@@ -22,6 +22,10 @@
     height: 1em;
 }
 
+.greyed {
+    opacity: 0.5;
+}
+
 li:target > .desc {
     background-color: orange;
 }
@@ -264,17 +268,29 @@ function commit(hash, makeUrl) {
         var base = (this.treeParent == null) ? document.getElementById("commits")
                     : this.treeParent.pickSublist();
         base.appendChild(this.domSelf);
+        this.enableLinks();
     }
     this.renderLink = function(treeParent) {
         var dom = document.createElement("li");
-        dom.innerHTML = "<a href=\"#li:" + this.hash + "\">-> </a>";
-        dom.addEventListener("mouseover", () => this.onHoveredOn());
-        dom.addEventListener("mouseout", () => this.onHoveredOff());
+        dom.innerHTML = "<a>-> " + this.hash + "</a>";
         var base = (treeParent == null) ? document.getElementById("commits")
                     : treeParent.pickSublist();
         if (base != null) {
             base.appendChild(dom);
         }
+        this.domLinks.push(dom);
+    }
+    this.enableLinks = function() {
+        this.domLinks.forEach(link => {
+            link.children[0].setAttribute("href", "#li:" + this.hash);
+            link.children[0].textContent = "-> ";
+            var subject = document.createElement("span");
+            subject.textContent = this.info.desc[1];
+            subject.classList.add("greyed");
+            link.appendChild(subject);
+            link.addEventListener("mouseover", () => this.onHoveredOn());
+            link.addEventListener("mouseout", () => this.onHoveredOff());
+        });
     }
     this.onHoveredOn = function() {
         if (this.domSelf != null) {
