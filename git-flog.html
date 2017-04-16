@@ -26,6 +26,10 @@ li:target > .desc {
     background-color: orange;
 }
 
+li.linked-hovered > .desc {
+    background-color: yellow;
+}
+
 #info {
     height: 80px;
     overflow-y: scroll;
@@ -264,10 +268,22 @@ function commit(hash, makeUrl) {
     this.renderLink = function(treeParent) {
         var dom = document.createElement("li");
         dom.innerHTML = "<a href=\"#li:" + this.hash + "\">-> </a>";
+        dom.addEventListener("mouseover", () => this.onHoveredOn());
+        dom.addEventListener("mouseout", () => this.onHoveredOff());
         var base = (treeParent == null) ? document.getElementById("commits")
                     : treeParent.pickSublist();
         if (base != null) {
             base.appendChild(dom);
+        }
+    }
+    this.onHoveredOn = function() {
+        if (this.domSelf != null) {
+            this.domSelf.classList.add("linked-hovered");
+        }
+    }
+    this.onHoveredOff = function() {
+        if (this.domSelf != null) {
+            this.domSelf.classList.remove("linked-hovered");
         }
     }
     this.pickSublist = function() {
