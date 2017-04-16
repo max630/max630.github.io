@@ -219,6 +219,7 @@ function commit(hash, makeUrl) {
         if (this.info == null) {
             return;
         }
+        this.render();
         var pl = this.info.parents.length;
         var handleParent = function(treeParent,p,pscore){
             if (scoreGT(pscore,p.score)) {
@@ -244,8 +245,6 @@ function commit(hash, makeUrl) {
                 handleParent(this,this.info.parents[1], this.score.concat([1]));
             }
         }
-
-        this.render();
     }
     this.render = function() {
         if (this.domSelf != null) {
@@ -265,8 +264,10 @@ function commit(hash, makeUrl) {
     this.renderLink = function(treeParent) {
         var dom = document.createElement("li");
         dom.innerHTML = "<a href=\"#li:" + this.hash + "\">-> </a>";
-        if (treeParent.domSelf != null) {
-            treeParent.domSelf.appendChild(dom);
+        var base = (treeParent == null) ? document.getElementById("commits")
+                    : treeParent.pickSublist();
+        if (base != null) {
+            base.appendChild(dom);
         }
     }
     this.pickSublist = function() {
