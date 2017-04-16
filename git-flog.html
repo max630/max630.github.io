@@ -359,23 +359,10 @@ function uiContinue() {
     window.state.getMoreCommits();
 }
 function elShow(elName) {
-    removeClassName(document.getElementById(elName), "hidden");
+    document.getElementById(elName).classList.remove("hidden");
 }
 function elHide(elName) {
-    addClassName(document.getElementById(elName), "hidden");
-}
-function addClassName(el, name) {
-    var classes = el.className.split(" ");
-    if (!classes.some(function(n) { return (n.trim() == name); })) {
-        el.className += " " + name;
-    } 
-}
-function removeClassName(el, name) {
-    el.className = el.className
-                    .split(" ")
-                    .map(function (s) { return s.trim(); })
-                    .filter(function (s) { return (s != name) })
-                    .join(" ");
+    document.getElementById(elName).classList.add("hidden");
 }
 </script>
 <body>
