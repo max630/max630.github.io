@@ -220,19 +220,22 @@ function commit(hash, makeUrl) {
         }
         var pl = this.info.parents.length;
         var handleParent = function(treeParent,p,pscore){
-            if (scoreGT(pscore,p.score)) { // FIXME: p is undefined
+            if (scoreGT(pscore,p.score)) {
                 p.score = pscore;
                 p.treeParent = treeParent;
                 p.sortParents();
             }
         }
-        var nextscore = this.score.concat();
-        ++nextscore[nextscore.length - 1];
-        handleParent(this.treeParent,this.info.parents[0], nextscore);
-        // ignore next parents so far
-        // TODO: make the intermediate fake "commit"
-        if (pl > 1) {
-            handleParent(this,this.info.parents[1], this.score.concat([1]));
+        if (pl > 0) {
+            var nextscore = this.score.concat();
+            ++nextscore[nextscore.length - 1];
+            handleParent(this.treeParent,this.info.parents[0], nextscore);
+
+            // ignore next parents so far
+            // TODO: make the intermediate fake "commit"
+            if (pl > 1) {
+                handleParent(this,this.info.parents[1], this.score.concat([1]));
+            }
         }
 
         // TODO: bring this separately this
