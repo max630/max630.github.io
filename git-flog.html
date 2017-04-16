@@ -305,10 +305,16 @@ function commit(hash, makeUrl) {
     this.hash = hash;
     this.score = [1];
     this.children = [];
+
+    // if null - to top mainline
+    // if commit `c` - to the mainline merged to `c`
     this.treeParent = null;
     this.info = null;
+    // the topmost element
     this.domSelf = null;
+    // if the commit is a merge, the list which contains the merged mainline
     this.domSublist = null;
+    // if the commit is a merge, the toggle button
     this.domToggle = null;
     this.domLinks = [];
 }
