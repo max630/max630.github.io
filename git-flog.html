@@ -392,12 +392,11 @@ function startWithUrl(url) {
         elHide("start");
         handler.activate();
         window.state = new statePrototype(handler);
+        elShow("repo");
+        document.getElementById("repo:path").textContent = url;
         return true;
     }
     return false;
-}
-function uiGithubAuthTypeChanged() {
-    // TODO: move into github, make it consider current state
 }
 function uiContinue() {
     if (window.state == null) {
@@ -435,10 +434,15 @@ function uiInit()
 <body onload="uiInit()">
 <form id="start" class="block" action="javascript:uiStart();">
  <input id="start:url" type="text" name="url">
- <input type="submit" value="Show This Repository">
+ <input type="submit" value="Browse This Repository">
 </form>
-<div id="github" class="block hidden">
- Github login: <select id="github:authtype" onChange="Github.setAuthType();">
+<div id="repo" class="inline hidden">
+ Browsing:
+ <span id="repo:path"></span>
+</div>
+as
+<div id="github" class="inline hidden">
+ <select id="github:authtype" onChange="Github.setAuthType();">
   <option value="noauth" selected>Anonymous</option>
   <option value="token">Token login</option>
  </select>
