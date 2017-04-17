@@ -415,12 +415,12 @@ function expandFocused() {
         commit = commit.treeParent;
     }
 }
-function uiResetHash()
+function uiInit()
 {
     window.location.hash = "";
 }
 </script>
-<body onload="uiResetHash()">
+<body onload="uiInit()">
 <form id="start" class="block" action="javascript:uiStart();">
  <input id="start:url" type="text" name="url">
  <input type="submit" value="Show This Repository">
