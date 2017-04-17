@@ -375,6 +375,7 @@ function uiStart() {
         handler.activate();
     }
     window.state = new statePrototype(handler);
+     window.onhashchange = expandFocused;
 }
 function uiGithubAuthTypeChanged() {
     // TODO: move into github, make it consider current state
@@ -391,8 +392,22 @@ function elShow(elName) {
 function elHide(elName) {
     document.getElementById(elName).classList.add("hidden");
 }
+function expandFocused() {
+    var commit = window.state.commits[location.hash.replace("#li:","")].treeParent;
+    while (commit != null) {
+        if (commit.domSublist.hasAttribute("hidden")) {
+            commit.domSublist.removeAttribute("hidden");
+            commit.domToggle.textContent = "[v]";
+        }
+        commit = commit.treeParent;
+    }
+}
+function uiResetHash()
+{
+    window.location.hash = "";
+}
 </script>
-<body>
+<body onload="uiResetHash()">
 <form id="start" class="block" action="javascript:uiStart();">
  <input id="start:url" type="text" name="url">
  <input type="submit" value="Show This Repository">
