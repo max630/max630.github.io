@@ -381,14 +381,20 @@ function commitInfo(desc, parents,makeUrl) {
 }
 var state = null;
 function uiStart() {
-    var handler = null;
     var url = document.getElementById("start:url").value;
+    if (startWithUrl(url)) {
+        window.location.search = "?url=" + encodeURIComponent(url);
+    }
+}
+function startWithUrl(url) {
+    var handler = null;
     if ([githubTry].some(function (h) { handler = h(url); return (handler != null) })) {
         elHide("start");
         handler.activate();
+        window.state = new statePrototype(handler);
+        return true;
     }
-    window.state = new statePrototype(handler);
-     window.onhashchange = expandFocused;
+    return false;
 }
 function uiGithubAuthTypeChanged() {
     // TODO: move into github, make it consider current state
@@ -417,7 +423,13 @@ function expandFocused() {
 }
 function uiInit()
 {
+    window.onhashchange = expandFocused;
     window.location.hash = "";
+    var m = /(?:\?|&)url\=([^&]*)(?:$|&)/.exec(window.location.search);
+    if (m != null) {
+        var url = m[1];
+        startWithUrl(decodeURIComponent(url));
+    }
 }
 </script>
 <body onload="uiInit()">
