@@ -234,10 +234,12 @@ function commit(hash, makeUrl) {
                 var oldTreeParent = p.treeParent;
                 p.score = pscore;
                 p.treeParent = treeParent;
-                p.sortParents();
                 if (oldTreeParent != null) {
                     p.renderLink(oldTreeParent);
+                } else {
+                    p.renderLink(treeParent);
                 }
+                p.sortParents();
             } else {
                 p.renderLink(treeParent);
             }
@@ -267,6 +269,14 @@ function commit(hash, makeUrl) {
         this.domSelf.childNodes[1].textContent = JSON.stringify(this.score);
         var base = (this.treeParent == null) ? document.getElementById("commits")
                     : this.treeParent.pickSublist();
+        var prevDomLink = base.lastChild;
+        if (prevDomLink != null) {
+            var prevLinkText = prevDomLink.children[0].textContent;
+            if (prevLinkText == "-> " + this.hash) {
+                base.removeChild(prevDomLink);
+                // FIXME: there is now hanging node now in this.domLinks, need to remove it
+            }
+        }
         base.appendChild(this.domSelf);
         this.enableLinks();
     }
