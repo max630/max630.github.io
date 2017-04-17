@@ -195,6 +195,26 @@ function statePrototype(handler) {
             return;
         }
         var parent_objects = parents.map(function(p){ return this.pickCommit(p); }, this);
+        if (parent_objects.length > 2) {
+            console.log("octopus: " + hash);
+            // octopus merge; pretend it as merged branch, each containing a merge
+            var previous = null;
+            var counter = 1;
+            var fakeMainline = [];
+            parent_objects.slice(1).forEach(p => {
+                var newP = this.pickCommit(hash + ":p" + counter);
+                newP.info = new commitInfo(["", "p" + counter],[null, p],h => { return "";});
+                fakeMainline.push(newP);
+                if (previous != null) {
+                    previous.info.parents[0] = newP;
+                }
+                previous = newP;
+                counter++;
+            });
+            // TODO: hide it
+            previous.info.parents[0] = this.pickCommit("none");
+            parent_objects = [parent_objects[0], fakeMainline[0]];
+        }
         c.info = new commitInfo(desc,parent_objects,makeUrl);
         c.sortParents();
 
