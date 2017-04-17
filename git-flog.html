@@ -230,18 +230,11 @@ function commit(hash, makeUrl) {
         this.render();
         var pl = this.info.parents.length;
         var handleParent = function(treeParent,p,pscore){
+            p.renderLink(treeParent);
             if (scoreGT(pscore,p.score)) {
-                var oldTreeParent = p.treeParent;
                 p.score = pscore;
                 p.treeParent = treeParent;
-                if (oldTreeParent != null) {
-                    p.renderLink(oldTreeParent);
-                } else {
-                    p.renderLink(treeParent);
-                }
                 p.sortParents();
-            } else {
-                p.renderLink(treeParent);
             }
         }
         if (pl > 0) {
@@ -274,7 +267,7 @@ function commit(hash, makeUrl) {
             var prevLinkText = prevDomLink.children[0].textContent;
             if (prevLinkText == "-> " + this.hash) {
                 base.removeChild(prevDomLink);
-                // FIXME: there is now hanging node now in this.domLinks, need to remove it
+                this.domLinks = this.domLinks.filter(link => { return link != prevDomLink; });
             }
         }
         base.appendChild(this.domSelf);
