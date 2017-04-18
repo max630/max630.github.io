@@ -68,45 +68,60 @@ function Github(repository) {
         this.githubSetAuthType();
     }
     this.githubInitAuth = function() {
-        if (this.auth == null) {
+        switch (document.getElementById("github:authtype").value) {
+        case "noauth":
+            elHide("github:userinfo");
+            elShow("github:anonymous");
+            uiHideAuth();
+            break;
+        case "token":
             if (this.request != null) {
                 throw "Busy";
             }
-            this.request = new XMLHttpRequest();
-            var username = document.getElementById("github:username").value;
-            var password = document.getElementById("github:password").value.trim();
-            if (/^[a-f0-9]{40}$/.exec(password) == null) {
-                alert("Please use the API token. Aren't you trying to use password?");
-                this.request = null;
-            } else if (username != null && username.length > 0 && password != null && password.length > 0) {
-                this.request.open("GET", "https://api.github.com/user", true);
-                this.request.setRequestHeader("Authorization", "Basic " + window.btoa(username + ":" + password));
-                var ghThis = this;
-                this.request.onreadystatechange = function() {
-                    if (ghThis.request.readyState == 4) {
-                        try {
-                            if (ghThis.request.status == 200) {
-                                ghThis.auth = [username, password];
-                                var info = JSON.parse(ghThis.request.responseText);
-                                document.getElementById("github:userinfo:name").textContent = info["login"];
-                                document.getElementById("github:userinfo:name").setAttribute("href", info["html_url"]);
-                                document.getElementById("github:userinfo:avatar").setAttribute("src", info["avatar_url"]);
-                                elShow("github:userinfo");
-                                elHide("github:login");
-                                elHide("github:authtype");
-                                document.getElementById("info").textContent += "login ok, user: " + info["login"] + "\n";
-                            } else {
-                                document.getElementById("info").textContent += "login failed, status: " + ghThis.request.status + "\n";
-                            }
-                        } finally {
-                            ghThis.request = null;
+            this.startRequest(
+                document.getElementById("github:username").value,
+                document.getElementById("github:password").value.trim(),
+                info => {
+                    document.getElementById("github:userinfo:name").textContent = info["login"];
+                    document.getElementById("github:userinfo:name").setAttribute("href", info["html_url"]);
+                    document.getElementById("github:userinfo:avatar").setAttribute("src", info["avatar_url"]);
+                    elShow("github:userinfo");
+                    elHide("github:anonymous");
+                    uiHideAuth();
+                });
+            break;
+        }
+    }
+    this.startRequest = function(username,password,handleSuccesfulLogin) {
+        if (this.request != null) {
+            throw "Busy";
+        }
+        if (/^[a-f0-9]{40}$/.exec(password) == null) {
+            alert("Please use the API token. Aren't you trying to use password?");
+            this.request = null;
+        } else if (username != null && username.length > 0 && password != null && password.length > 0) {
+            var request = new XMLHttpRequest();
+            request.open("GET", "https://api.github.com/user", true);
+            request.setRequestHeader("Authorization", "Basic " + window.btoa(username + ":" + password));
+            request.onreadystatechange = () => {
+                if (request.readyState == 4) {
+                    try {
+                        if (request.status == 200) {
+                            this.auth = [username, password];
+                            handleSuccesfulLogin(JSON.parse(request.responseText));
+                            document.getElementById("info").textContent += "login ok, user: " + info["login"] + "\n";
+                        } else {
+                            document.getElementById("info").textContent += "login failed, status: " + request.status + "\n";
                         }
+                    } finally {
+                        this.request = null;
                     }
                 }
-                this.request.send();
-            } else {
-                this.request = null;
             }
+            request.send();
+            this.request = request;
+        } else {
+            this.request = null;
         }
     }
     // make refs here to have only one in heap
@@ -473,7 +488,7 @@ function uiInit()
 </div>
 as
  <div id="github:anonymous" class="inline">Anonymous</div>
- <div id="github:auth" class="inline hidden">
+ <div id="github:userinfo" class="inline hidden">
   <img id="github:userinfo:avatar" src="" class="github-avatar"> <a id="github:userinfo:name" href="" target="_blank"></a>
  </div>
  <a href="javascript:uiPopupAuth();">Change</a>
