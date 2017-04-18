@@ -34,6 +34,27 @@ li.linked-hovered > .desc {
     background-color: yellow;
 }
 
+.popup-background {
+    position: fixed;
+    z-index: 1;
+    background-color: WindowText;
+    opacity: 0.5;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.popup {
+    position: fixed;
+    top: 25%;
+    left: 50%;
+    z-index: 2;
+    background-color: Window;
+    opacity: 1;
+    border: 1px solid ActiveBorder;
+}
+
 #info {
     height: 80px;
     overflow-y: scroll;
@@ -43,8 +64,8 @@ li.linked-hovered > .desc {
 <script>
 function Github(repository) {
     this.activate = function() {
-        elShow("github");
-        this.githubSetAuthType();
+        // elShow("github");
+        // this.githubSetAuthType();
     }
     this.githubInitAuth = function() {
         if (this.auth == null) {
@@ -420,6 +441,16 @@ function expandFocused() {
         commit = commit.treeParent;
     }
 }
+function uiPopupAuth()
+{
+    elShow("github:login:popup:back");
+    elShow("github:login:popup");
+}
+function uiHideAuth()
+{
+    elHide("github:login:popup:back");
+    elHide("github:login:popup");
+}
 function uiInit()
 {
     window.onhashchange = expandFocused;
@@ -441,26 +472,32 @@ function uiInit()
  <span id="repo:path"></span>
 </div>
 as
-<div id="github" class="inline hidden">
- <select id="github:authtype" onChange="Github.setAuthType();">
-  <option value="noauth" selected>Anonymous</option>
-  <option value="token">Token login</option>
- </select>
+ <div id="github:anonymous" class="inline">Anonymous</div>
  <div id="github:auth" class="inline hidden">
-  <form id="github:login" action="javascript:Github.initAuth();" class="inline">
-   User: <input id="github:username" type="text" name="username">
-   Token: <input id="github:password" type="password" name="token">
-   <input type="submit" value="Login"> (<a href="https://github.com/settings/tokens/new?scopes=&description=git-flog%20token" target="_blank">Get token</a>)
-  </form>
-  <form id="github:userinfo" class="inline hidden">
-   <img id="github:userinfo:avatar" src="" class="github-avatar"> <a id="github:userinfo:name" href="" target="_blank"></a>
-  </form>
+  <img id="github:userinfo:avatar" src="" class="github-avatar"> <a id="github:userinfo:name" href="" target="_blank"></a>
  </div>
+ <a href="javascript:uiPopupAuth();">Change</a>
 </div>
 <ul id="commits"></ul>
 <form id="continue" action="javascript:uiContinue();">
  <input type="submit" value="Continue"> <!-- TODO: properly show it -->
 </form>
 <pre id="info"></pre>
+<div id="github:login:popup:back" class="popup-background hidden" onClick="javascript:uiHideAuth();">
+</div>
+ <div id="github:login:popup" class="popup hidden">
+  Left: <span id="limit:remaining">0</span>, reset at <span id="limit:reset"></span>.
+  <br>
+  Change login to
+  <form id="github:login" action="javascript:Github.initAuth();" class="block hidden">
+   <select id="github:authtype" onChange="Github.setAuthType();">
+    <option value="noauth" selected>Anonymous</option>
+    <option value="token">Token login</option>
+   </select>
+   User: <input id="github:username" type="text" name="username">
+   Token: <input id="github:password" type="password" name="token">
+   <input type="submit" value="Change"> (<a href="https://github.com/settings/tokens/new?scopes=&description=git-flog%20token" target="_blank">Get token</a>)
+  </form>
+ </div>
 </body>
 </html>
