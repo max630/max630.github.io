@@ -65,7 +65,7 @@ li.linked-hovered > .desc {
 function Github(repository) {
     this.activate = function() {
         // elShow("github");
-        // this.githubSetAuthType();
+        this.githubSetAuthType();
     }
     this.githubInitAuth = function() {
         if (this.auth == null) {
@@ -169,10 +169,10 @@ function Github(repository) {
     this.githubSetAuthType = function() {
         switch (document.getElementById("github:authtype").value) {
         case "noauth":
-            elHide("github:auth");
+            elHide("github:auth:form");
             break;
         case "token":
-            elShow("github:auth");
+            elShow("github:auth:form");
             break;
         }
     }
@@ -489,14 +489,17 @@ as
   Left: <span id="limit:remaining">0</span>, reset at <span id="limit:reset"></span>.
   <br>
   Change login to
-  <form id="github:login" action="javascript:Github.initAuth();" class="block hidden">
+  <form id="github:login" action="javascript:Github.initAuth();" class="block">
    <select id="github:authtype" onChange="Github.setAuthType();">
     <option value="noauth" selected>Anonymous</option>
     <option value="token">Token login</option>
    </select>
-   User: <input id="github:username" type="text" name="username">
-   Token: <input id="github:password" type="password" name="token">
-   <input type="submit" value="Change"> (<a href="https://github.com/settings/tokens/new?scopes=&description=git-flog%20token" target="_blank">Get token</a>)
+   <span id="github:auth:form" class="hidden">
+    User: <input id="github:username" type="text" name="username">
+    Token: <input id="github:password" type="password" name="token">
+    (<a href="https://github.com/settings/tokens/new?scopes=&description=git-flog%20token" target="_blank">Get token</a>)
+   </span>
+   <input type="submit" value="Change">
   </form>
  </div>
 </body>
