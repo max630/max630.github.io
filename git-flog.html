@@ -447,13 +447,19 @@ function elHide(elName) {
     document.getElementById(elName).classList.add("hidden");
 }
 function expandFocused() {
-    var commit = window.state.commits[location.hash.replace("#li:","")].treeParent;
-    while (commit != null) {
-        if (commit.domSublist.hasAttribute("hidden")) {
-            commit.domSublist.removeAttribute("hidden");
-            commit.domToggle.textContent = "[v]";
+    var commit = window.state.commits[location.hash.replace("#li:","")];
+    var treeParent = commit.treeParent;
+    var wasHidden = false;
+    while (treeParent != null) {
+        if (treeParent.domSublist.hasAttribute("hidden")) {
+            treeParent.domSublist.removeAttribute("hidden");
+            treeParent.domToggle.textContent = "[v]";
+            wasHidden = true;
         }
-        commit = commit.treeParent;
+        treeParent = treeParent.treeParent;
+    }
+    if (wasHidden) {
+        document.getElementById(location.hash.replace("#", "")).scrollIntoView();
     }
 }
 function uiPopupAuth()
