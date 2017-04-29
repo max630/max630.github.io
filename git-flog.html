@@ -304,10 +304,12 @@ function commit(hash) {
             ++nextscore[nextscore.length - 1];
             handleParent(this.treeParent,this.info.parents[0], nextscore);
 
-            // ignore next parents so far
-            // TODO: make the intermediate fake "commit"
             if (pl > 1) {
                 handleParent(this,this.info.parents[1], this.score.concat([1]));
+                if (pl > 2) {
+                    // octopus merges should be transformed to fake branches
+                    alert("Internal error: pl > 2");
+                }
             }
         }
     }
