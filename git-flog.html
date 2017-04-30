@@ -423,13 +423,13 @@ function commit(hash) {
         }
         this.domSelf = document.createElement("li");
         this.domSelf.id = "li:" + this.hash;
-        this.domSelf.innerHTML = `<a style="position:relative">
-                <span class="empty">[&gt;]</span>
-                <span class="empty" style="position:absolute;left:0;top:0;">[v]</span>
-            </a>
-            <a target="_blank"><img class="avatar" src=""/></a>
-            <a class="desc"></a>
-            <span class="score"></span>`;
+        this.domSelf.innerHTML = `<a style="position:relative"
+                ><span class="empty">[&gt;]</span
+                ><span class="empty" style="position:absolute;left:0;top:0;">[v]</span
+            ></a
+            ><a target="_blank"><img class="avatar" src=""/></a
+            ><a class="desc"></a
+            ><span class="score"></span>`;
         if (this.info.commitType == "real") {
             if (this.info.raw.author != null) {
                 var avatar_url = this.info.raw.author.avatar_url;
