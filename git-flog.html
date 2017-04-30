@@ -309,6 +309,11 @@ function commit(hash) {
             p.renderLink(treeParent);
             if (scoreGT(pscore,p.score)) {
                 p.score = pscore;
+                if (p.domSelf != null) {
+                    var parent = (p.treeParent == null) ? document.getElementById("commits") : p.treeParent.pickSublist();
+                    parent.removeChild(p.domSelf);
+                    p.domSelf = null;
+                }
                 p.treeParent = treeParent;
                 p.sortParents();
             }
@@ -329,8 +334,7 @@ function commit(hash) {
     }
     this.render = function() {
         if (this.domSelf != null) {
-            document.getElementById("commits").removeChild(this.domSelf);
-            this.domSelf = null;
+            throw ("Stale placed" + this.hash);
         }
         this.domSelf = document.createElement("li");
         this.domSelf.id = "li:" + this.hash;
