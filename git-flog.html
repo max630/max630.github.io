@@ -335,16 +335,17 @@ function commit(hash) {
         this.domSelf = document.createElement("li");
         this.domSelf.id = "li:" + this.hash;
         this.domSelf.innerHTML = '<a><img class="avatar" src=""/></a><a class="desc"></a><span class="score"></span>';
-        var avatar_url =
-            (this.info.raw.author != null) ? this.info.raw.author.avatar_url
-            : (this.info.raw.commiter != null) ? this.info.raw.committer.avatar_url
-            : "";
-        if (avatar_url != "") {
+        if (this.info.raw.author != null) {
+            var avatar_url = this.info.raw.author.avatar_url;
             if (avatar_url.indexOf("?") >= 0) {
                 avatar_url += "&s=16";
             } else {
                 avatar_url += "?s=16";
             }
+        } else {
+            var avatar_url = "https://www.gravatar.com/avatar/" + md5(this.info.raw.commit.author.email.trim().toLowerCase()) + "?s=16&d=retro";
+        }
+        if (avatar_url != "") {
             this.domSelf.childNodes[0].childNodes[0].setAttribute("src", avatar_url);
         } else {
             this.domSelf.childNodes[0].classList.add("hidden");
