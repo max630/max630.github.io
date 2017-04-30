@@ -465,7 +465,7 @@ function commit(hash) {
             link.children[0].setAttribute("href", "#li:" + this.hash);
             link.children[0].textContent = "-> ";
             var subject = document.createElement("span");
-            subject.textContent = this.info.raw;
+            subject.textContent = this.info.raw.commit.message.split("\n")[0];
             subject.classList.add("greyed");
             link.appendChild(subject);
             link.addEventListener("mouseover", () => this.onHoveredOn());
