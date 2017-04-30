@@ -171,8 +171,7 @@ function Github(repository) {
                             + "\n";
                         var cs = JSON.parse(ghThis.request.responseText);
                         cs.forEach(function(c){
-                            var desc = [c.commit.author.email, c.commit.message.split("\n")[0]];
-                            handleCommit(c.sha,desc,c.parents.map(function(p) { return p.sha } ),c);
+                            handleCommit(c.sha,c.parents.map(function(p) { return p.sha } ),c);
                         });
                         var nextUrl = null;
                         if (ghThis.request.getResponseHeader("link").split(",").some(function (link) {
@@ -245,7 +244,7 @@ function statePrototype(handler) {
             return c;
         }
     }
-    this.addCommit = function(hash,desc,parents,r) {
+    this.addCommit = function(hash,parents,r) {
         var c = this.pickCommit(hash);
         if (c.info != null) {
             // duplicate; nothing to do
@@ -260,7 +259,7 @@ function statePrototype(handler) {
             var fakeMainline = [];
             parent_objects.slice(1).forEach(p => {
                 var newP = this.pickCommit(hash + ":p" + counter);
-                newP.info = new commitInfo("octopus",["", "p" + counter],[null, p],"");
+                newP.info = new commitInfo("octopus",[null, p],{ number: counter });
                 fakeMainline.push(newP);
                 if (previous != null) {
                     previous.info.parents[0] = newP;
@@ -272,13 +271,13 @@ function statePrototype(handler) {
             previous.info.parents[0] = this.pickCommit("none");
             parent_objects = [parent_objects[0], fakeMainline[0]];
         }
-        c.info = new commitInfo("real",desc,parent_objects,r);
+        c.info = new commitInfo("real",parent_objects,r);
         c.sortParents();
 
     }
     this.getMoreCommits = function() {
         var sThis = this;
-        this.handler.getMoreCommits(function(h,d,p,r) { sThis.addCommit(h,d,p,r) });
+        this.handler.getMoreCommits(function(h,p,r) { sThis.addCommit(h,p,r) });
     }
 
     this.commits = {};
@@ -336,24 +335,29 @@ function commit(hash) {
         this.domSelf = document.createElement("li");
         this.domSelf.id = "li:" + this.hash;
         this.domSelf.innerHTML = '<a target="_blank"><img class="avatar" src=""/></a><a class="desc"></a><span class="score"></span>';
-        if (this.info.raw.author != null) {
-            var avatar_url = this.info.raw.author.avatar_url;
-            if (avatar_url.indexOf("?") >= 0) {
-                avatar_url += "&s=16";
+        if (this.info.commitType == "real") {
+            if (this.info.raw.author != null) {
+                var avatar_url = this.info.raw.author.avatar_url;
+                if (avatar_url.indexOf("?") >= 0) {
+                    avatar_url += "&s=16";
+                } else {
+                    avatar_url += "?s=16";
+                }
+                this.domSelf.childNodes[0].setAttribute("href", this.info.raw.author.html_url);
             } else {
-                avatar_url += "?s=16";
+                var avatar_url = "https://www.gravatar.com/avatar/" + md5(this.info.raw.commit.author.email.trim().toLowerCase()) + "?s=16&d=retro";
             }
-            this.domSelf.childNodes[0].setAttribute("href", this.info.raw.author.html_url);
-        } else {
-            var avatar_url = "https://www.gravatar.com/avatar/" + md5(this.info.raw.commit.author.email.trim().toLowerCase()) + "?s=16&d=retro";
-        }
-        if (avatar_url != "") {
-            this.domSelf.childNodes[0].childNodes[0].setAttribute("src", avatar_url);
-        } else {
+            if (avatar_url != "") {
+                this.domSelf.childNodes[0].childNodes[0].setAttribute("src", avatar_url);
+            } else {
+                this.domSelf.childNodes[0].classList.add("hidden");
+            }
+            this.domSelf.childNodes[1].setAttribute("href", this.info.raw.html_url);
+            this.domSelf.childNodes[1].textContent = this.info.raw.commit.message.split("\n")[0];
+        } else if (this.info.commitType == "octopus") {
             this.domSelf.childNodes[0].classList.add("hidden");
+            this.domSelf.childNodes[1].textContent = "parent" + this.info.raw.number;
         }
-        this.domSelf.childNodes[1].setAttribute("href", this.info.raw.html_url);
-        this.domSelf.childNodes[1].textContent = this.info.desc[0] + ": " + this.info.desc[1];
         // this.domSelf.childNodes[1].textContent = JSON.stringify(this.score);
         var base = (this.treeParent == null) ? document.getElementById("commits")
                     : this.treeParent.pickSublist();
@@ -383,7 +387,7 @@ function commit(hash) {
             link.children[0].setAttribute("href", "#li:" + this.hash);
             link.children[0].textContent = "-> ";
             var subject = document.createElement("span");
-            subject.textContent = this.info.desc[1];
+            subject.textContent = this.info.raw;
             subject.classList.add("greyed");
             link.appendChild(subject);
             link.addEventListener("mouseover", () => this.onHoveredOn());
@@ -449,9 +453,8 @@ function commit(hash) {
     this.domToggle = null;
     this.domLinks = [];
 }
-function commitInfo(commitType,desc, parents,raw) {
+function commitInfo(commitType,parents,raw) {
     this.commitType = commitType;
-    this.desc = desc;
     this.parents = parents;
     this.raw = raw;
 }
