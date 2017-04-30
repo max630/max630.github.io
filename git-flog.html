@@ -162,14 +162,6 @@ return[255&t,t>>8&255,t>>16&255,t>>24&255,255&r,r>>8&255,r>>16&255,r>>24&255,255
 var t=new ArrayBuffer(16),r=new Uint32Array(t);
 return r[0]=this.h0,r[1]=this.h1,r[2]=this.h2,r[3]=this.h3,t},t.prototype.buffer=t.prototype.arrayBuffer;
 var b=y();h?module.exports=b:(r.md5=b,s&&define(function(){return b}))}();
-window.md5cache = {};
-function md5cached(s) {
-    if(!(s in window.md5cache)) {
-        window.md5cache[s] = md5(s);
-    }
-
-    return window.md5cache[s];
-}
 // }}} ------------------------------------------------------
 
 function Github(repository) {
@@ -386,6 +378,14 @@ function scoreGT(s1, s2) {
     } else {
         return false;
     }
+}
+window.md5cache = {};
+function md5cached(s) {
+    if(!(s in window.md5cache)) {
+        window.md5cache[s] = md5(s);
+    }
+
+    return window.md5cache[s];
 }
 function commit(hash) {
     this.sortParents = function() {
