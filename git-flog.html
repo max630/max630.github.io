@@ -334,7 +334,7 @@ function commit(hash) {
         }
         this.domSelf = document.createElement("li");
         this.domSelf.id = "li:" + this.hash;
-        this.domSelf.innerHTML = '<a><img class="avatar" src=""/></a><a class="desc"></a><span class="score"></span>';
+        this.domSelf.innerHTML = '<a target="_blank"><img class="avatar" src=""/></a><a class="desc"></a><span class="score"></span>';
         if (this.info.raw.author != null) {
             var avatar_url = this.info.raw.author.avatar_url;
             if (avatar_url.indexOf("?") >= 0) {
@@ -342,6 +342,7 @@ function commit(hash) {
             } else {
                 avatar_url += "?s=16";
             }
+            this.domSelf.childNodes[0].setAttribute("href", this.info.raw.author.html_url);
         } else {
             var avatar_url = "https://www.gravatar.com/avatar/" + md5(this.info.raw.commit.author.email.trim().toLowerCase()) + "?s=16&d=retro";
         }
