@@ -19,6 +19,10 @@
     display: none !important;
 }
 
+.empty {
+    visibility: hidden;
+}
+
 .github-avatar {
     height: 1em;
 }
@@ -412,7 +416,13 @@ function commit(hash) {
         }
         this.domSelf = document.createElement("li");
         this.domSelf.id = "li:" + this.hash;
-        this.domSelf.innerHTML = '<a target="_blank"><img class="avatar" src=""/></a><a class="desc"></a><span class="score"></span>';
+        this.domSelf.innerHTML = `<a style="position:relative">
+                <span class="empty">[&gt;]</span>
+                <span class="empty" style="position:absolute;left:0;top:0;">[v]</span>
+            </a>
+            <a target="_blank"><img class="avatar" src=""/></a>
+            <a class="desc"></a>
+            <span class="score"></span>`;
         if (this.info.commitType == "real") {
             if (this.info.raw.author != null) {
                 var avatar_url = this.info.raw.author.avatar_url;
@@ -421,22 +431,22 @@ function commit(hash) {
                 } else {
                     avatar_url += "?s=16";
                 }
-                this.domSelf.childNodes[0].setAttribute("href", this.info.raw.author.html_url);
+                this.domSelf.getElementsByTagName("a")[1].setAttribute("href", this.info.raw.author.html_url);
             } else {
                 var avatar_url = "https://www.gravatar.com/avatar/" + md5(this.info.raw.commit.author.email.trim().toLowerCase()) + "?s=16&d=retro";
             }
             if (avatar_url != "") {
-                this.domSelf.childNodes[0].childNodes[0].setAttribute("src", avatar_url);
+                this.domSelf.getElementsByTagName("a")[1].getElementsByTagName("img")[0].setAttribute("src", avatar_url);
             } else {
-                this.domSelf.childNodes[0].classList.add("hidden");
+                this.domSelf.getElementsByTagName("a")[1].classList.add("hidden");
             }
-            this.domSelf.childNodes[1].setAttribute("href", this.info.raw.html_url);
-            this.domSelf.childNodes[1].textContent = this.info.raw.commit.message.split("\n")[0];
+            this.domSelf.getElementsByTagName("a")[2].setAttribute("href", this.info.raw.html_url);
+            this.domSelf.getElementsByTagName("a")[2].textContent = this.info.raw.commit.message.split("\n")[0];
         } else if (this.info.commitType == "octopus") {
-            this.domSelf.childNodes[0].classList.add("hidden");
-            this.domSelf.childNodes[1].textContent = "parent" + this.info.raw.number;
+            this.domSelf.getElementsByTagName("a")[1].classList.add("hidden");
+            this.domSelf.getElementsByTagName("a")[2].textContent = "parent" + this.info.raw.number;
         }
-        // this.domSelf.childNodes[1].textContent = JSON.stringify(this.score);
+        // this.domSelf.getElementsByTagName("span")[0].textContent = JSON.stringify(this.score);
         var base = (this.treeParent == null) ? document.getElementById("commits")
                     : this.treeParent.pickSublist();
         var prevDomLink = base.lastChild;
@@ -490,14 +500,10 @@ function commit(hash) {
         if (this.domSublist != null) {
             return this.domSublist;
         }
-        this.domToggle = document.createElement("a");
-        this.domToggle.textContent = "[>]";
-        // this.domToggle.setAttribute("id", "tg:" + this.hash);
+        this.domToggle = this.domSelf.getElementsByTagName("a")[0];
         this.domToggle.setAttribute("href", "javascript:state.commits[\"" + this.hash + "\"].toggle();");
-        this.domToggle.setAttribute("class", "toggle");
-        this.domSelf.insertBefore(this.domToggle, this.domSelf.childNodes[0]);
+        this.domToggle.getElementsByTagName("span")[0].classList.remove("empty");
         this.domSublist = document.createElement("ul");
-        // this.domSublist.setAttribute("id", "ul:" + this.hash);
         this.domSelf.appendChild(this.domSublist);
         this.domSublist.setAttribute("hidden", "")
         return this.domSublist;
@@ -508,10 +514,12 @@ function commit(hash) {
         }
         if (this.domSublist.hasAttribute("hidden")) {
             this.domSublist.removeAttribute("hidden");
-            this.domToggle.textContent = "[v]";
+            this.domToggle.getElementsByTagName("span")[0].classList.add("empty");
+            this.domToggle.getElementsByTagName("span")[1].classList.remove("empty");
         } else {
             this.domSublist.setAttribute("hidden", "");
-            this.domToggle.textContent = "[>]";
+            this.domToggle.getElementsByTagName("span")[0].classList.remove("empty");
+            this.domToggle.getElementsByTagName("span")[1].classList.add("empty");
         }
     }
 
