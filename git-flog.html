@@ -32,6 +32,10 @@
 }
 
 li.linked-hovered > .desc {
+    background-color: yellowgreen;
+}
+
+li.linked-hovered-parent > .desc {
     background-color: yellow;
 }
 
@@ -400,18 +404,33 @@ function commit(hash) {
             subject.textContent = this.info.raw.commit.message.split("\n")[0];
             subject.classList.add("greyed");
             link.appendChild(subject);
-            link.addEventListener("mouseover", () => this.onHoveredOn());
-            link.addEventListener("mouseout", () => this.onHoveredOff());
+            link.addEventListener("mouseover", () => this.onHoveredOn(true));
+            link.addEventListener("mouseout", () => this.onHoveredOff(true));
         });
     }
-    this.onHoveredOn = function() {
+    this.onHoveredOn = function(isSelf) {
         if (this.domSelf != null) {
-            this.domSelf.classList.add("linked-hovered");
+            if (this.treeParent != null && this.treeParent.pickSublist().hasAttribute("hidden")) {
+                this.treeParent.onHoveredOn(false);
+            } else {
+                if (isSelf) {
+                    this.domSelf.classList.add("linked-hovered");
+                } else {
+                    this.domSelf.classList.add("linked-hovered-parent");
+                }
+            }
         }
     }
-    this.onHoveredOff = function() {
+    this.onHoveredOff = function(isSelf) {
         if (this.domSelf != null) {
-            this.domSelf.classList.remove("linked-hovered");
+            if (isSelf) {
+                this.domSelf.classList.remove("linked-hovered");
+            } else {
+                this.domSelf.classList.remove("linked-hovered-parent");
+            }
+            if (this.treeParent != null) {
+                this.treeParent.onHoveredOff(false);
+            }
         }
     }
     this.pickSublist = function() {
