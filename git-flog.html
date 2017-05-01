@@ -349,13 +349,13 @@ function commit(hash) {
             if (this.info.raw.author != null) {
                 var avatar_url = this.info.raw.author.avatar_url;
                 if (avatar_url.indexOf("?") >= 0) {
-                    avatar_url += "&s=16";
+                    avatar_url += "&s=32";
                 } else {
-                    avatar_url += "?s=16";
+                    avatar_url += "?s=32";
                 }
                 this.domSelf.getElementsByTagName("a")[1].setAttribute("href", this.info.raw.author.html_url);
             } else {
-                var avatar_url = "https://www.gravatar.com/avatar/" + md5cached(this.info.raw.commit.author.email.trim().toLowerCase()) + "?s=16&d=retro";
+                var avatar_url = "https://www.gravatar.com/avatar/" + md5cached(this.info.raw.commit.author.email.trim().toLowerCase()) + "?s=32&d=retro";
             }
             if (avatar_url != "") {
                 this.domSelf.getElementsByTagName("a")[1].getElementsByTagName("img")[0].setAttribute("src", avatar_url);
