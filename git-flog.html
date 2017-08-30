@@ -487,7 +487,7 @@ function commitInfo(commitType,parents,raw) {
 }
 var state = null;
 function uiStart() {
-    var url = document.getElementById("start:url").value;
+    var url = document.getElementById("start:url").value.trim();
     if (startWithUrl(url)) {
         window.location.search = "?url=" + encodeURIComponent(url);
     }
