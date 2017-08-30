@@ -1,0 +1,706 @@
+<!DOCTYPE html> 
+<html>
+<meta charset="UTF-8">
+<meta name=viewport content="width=device-width, initial-scale=1">
+<style>
+.toggle {
+    margin-right: 0.25em;
+}
+
+.block {
+    display: block;
+}
+
+.inline {
+    display: inline;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.empty {
+    visibility: hidden;
+}
+
+.github-avatar {
+    height: 1em;
+}
+
+.greyed {
+    opacity: 0.5;
+}
+
+li.linked-hovered > .desc {
+    background-color: yellowgreen;
+}
+
+li.linked-hovered-parent > .desc {
+    background-color: yellow;
+}
+
+li:target > .desc {
+    background-color: orange;
+}
+
+.popup-background {
+    position: fixed;
+    z-index: 1;
+    background-color: WindowText;
+    opacity: 0.5;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.popup {
+    position: fixed;
+    top: 25%;
+    left: 50%;
+    left: calc(100% - 100px / 2);
+    z-index: 2;
+    background-color: Window;
+    opacity: 1;
+    border: 1px solid ActiveBorder;
+}
+
+.avatar {
+    /* display: none; */
+    height: 16px;
+    width: 16px;
+}
+
+#info {
+    height: 80px;
+    overflow-y: scroll;
+    border: 1px solid ActiveBorder;
+}
+</style>
+<script>
+
+function Github(repository) {
+    this.activate = function() {
+        // elShow("github");
+        this.githubSetAuthType();
+    }
+    this.githubInitAuth = function() {
+        switch (document.getElementById("github:authtype").value) {
+        case "noauth":
+            elHide("github:userinfo");
+            elShow("github:anonymous");
+            uiHideAuth();
+            break;
+        case "token":
+            if (this.request != null) {
+                throw "Busy";
+            }
+            this.startRequest(
+                document.getElementById("github:username").value,
+                document.getElementById("github:password").value.trim(),
+                info => {
+                    document.getElementById("github:userinfo:name").textContent = info["login"];
+                    document.getElementById("github:userinfo:name").setAttribute("href", info["html_url"]);
+                    document.getElementById("github:userinfo:avatar").setAttribute("src", info["avatar_url"]);
+                    elShow("github:userinfo");
+                    elHide("github:anonymous");
+                    uiHideAuth();
+                });
+            break;
+        }
+    }
+    this.startRequest = function(username,password,handleSuccesfulLogin) {
+        if (this.request != null) {
+            throw "Busy";
+        }
+        if (/^[a-f0-9]{40}$/.exec(password) == null) {
+            alert("Please use the API token. Aren't you trying to use password?");
+            this.request = null;
+        } else if (username != null && username.length > 0 && password != null && password.length > 0) {
+            var request = new XMLHttpRequest();
+            request.open("GET", "https://api.github.com/user", true);
+            request.setRequestHeader("Authorization", "Basic " + window.btoa(username + ":" + password));
+            request.onreadystatechange = () => {
+                if (request.readyState == 4) {
+                    try {
+                        if (request.status == 200) {
+                            this.auth = [username, password];
+                            handleSuccesfulLogin(JSON.parse(request.responseText));
+                            document.getElementById("info").textContent += "login ok, user: " + info["login"] + "\n";
+                        } else {
+                            document.getElementById("info").textContent += "login failed, status: " + request.status + "\n";
+                        }
+                    } finally {
+                        this.request = null;
+                    }
+                }
+            }
+            request.send();
+            this.request = request;
+        } else {
+            this.request = null;
+        }
+    }
+    // make refs here to have only one in heap
+    var urlPrefix = "https://github.com/" + repository + "/commit/";
+    this.getMoreCommits = function(handleCommit) {
+        if (this.request != null) {
+            throw "Busy";
+        }
+        if (this.nextUrl == null) {
+            throw "Nothing to get more";
+        }
+        this.request = new XMLHttpRequest();
+        this.request.open("GET", this.nextUrl, true);
+        if (this.auth != null) {
+            this.request.setRequestHeader("Authorization", "Basic " + window.btoa(this.auth[0] + ":" + this.auth[1]));
+        }
+        var ghThis = this;
+        this.request.onreadystatechange = function() {
+            if (ghThis.request.readyState == 4) {
+                try {
+                    if (ghThis.request.status == 200) {
+                        document.getElementById("info").textContent +=
+                            "response: "
+                            + "l_rem: " + ghThis.request.getResponseHeader("X-RateLimit-Remaining")
+                            + ", l_reset: " + new Date(ghThis.request.getResponseHeader("X-RateLimit-Reset") * 1000)
+                            + "\n";
+                        var cs = JSON.parse(ghThis.request.responseText);
+                        cs.forEach(function(c){
+                            handleCommit(c.sha,c.parents.map(function(p) { return p.sha } ),c);
+                        });
+                        var nextUrl = null;
+                        if (ghThis.request.getResponseHeader("link").split(",").some(function (link) {
+                                var cs = link.split(";");
+                                if (/^\s*rel="next"\s*$/.test(cs[1])) {
+                                    var urlPattern = /^\s*<(https:\/\/api\.github\.com\/repositories\/[0-9]+\/commits\?sha\=[a-z0-9_\/%-]+\&per_page\=[0-9]+\&page\=[0-9]+)>$/i;
+                                    nextUrl = urlPattern.exec(cs[0])[1];
+                                    return true;
+                                } else {
+                                    return false;
+                                }
+                            })) {
+                            ghThis.nextUrl = nextUrl;
+                            elShow("continue");
+                        } else {
+                            ghThis.nextUrl = null;
+                            elHide("continue");
+                        }
+                    } else {
+                        document.getElementById("info").textContent += "fetch failed, status: " + ghThis.request.status + "\n";
+                    }
+                } finally {
+                    ghThis.request = null;
+                }
+            }
+        }
+        this.request.send();
+    }
+    this.githubSetAuthType = function() {
+        switch (document.getElementById("github:authtype").value) {
+        case "noauth":
+            elHide("github:auth:form");
+            break;
+        case "token":
+            elShow("github:auth:form");
+            break;
+        }
+        uiAdjustPopupPosition();
+    }
+
+    this.request = null;
+    this.auth = null;
+    // TODO:
+    // * use custom branch
+    // * select first chunk at auth
+    this.nextUrl = "https://api.github.com/repos/" + repository + "/commits?sha=master&per_page=100";
+    this.repository = repository;
+}
+function githubTry(url) {
+    var match = /^(https:\/\/github\.com\/|git@githu\.com:|git:\/\/github\.com\/)([^\/]+)\/([^\/]+)($|\.git|\/)/i.exec(url);
+    if (match != null) {
+        return new Github(match[2] + "/" + match[3]);
+    } else {
+        return null;
+    }
+}
+Github.initAuth = function() {
+    window.state.handler.githubInitAuth();
+}
+Github.setAuthType = function() {
+    window.state.handler.githubSetAuthType();
+}
+function statePrototype(handler) {
+    this.pickCommit = function(hash) {
+        if (hash in this.commits) {
+            return this.commits[hash];
+        } else {
+            var c = new commit(hash);
+            this.commits[hash] = c;
+            return c;
+        }
+    }
+    this.addCommit = function(hash,parents,r) {
+        var c = this.pickCommit(hash);
+        if (c.info != null) {
+            // duplicate; nothing to do
+            return;
+        }
+        var parent_objects = parents.map(function(p){ return this.pickCommit(p); }, this);
+        if (parent_objects.length > 2) {
+            console.log("octopus: " + hash);
+            // octopus merge; pretend it as merged branch, each containing a merge
+            var previous = null;
+            var counter = 1;
+            var fakeMainline = [];
+            parent_objects.slice(1).forEach(p => {
+                var newP = this.pickCommit(hash + ":p" + counter);
+                newP.info = new commitInfo("octopus",[null, p],{ number: counter });
+                fakeMainline.push(newP);
+                if (previous != null) {
+                    previous.info.parents[0] = newP;
+                }
+                previous = newP;
+                counter++;
+            });
+            // TODO: hide it
+            previous.info.parents[0] = this.pickCommit("none");
+            parent_objects = [parent_objects[0], fakeMainline[0]];
+        }
+        c.info = new commitInfo("real",parent_objects,r);
+        c.sortParents();
+
+    }
+    this.getMoreCommits = function() {
+        var sThis = this;
+        this.handler.getMoreCommits(function(h,p,r) { sThis.addCommit(h,p,r) });
+    }
+
+    this.commits = {};
+    this.handler = handler;
+}
+function scoreGT(s1, s2) {
+    var l = (s1.length > s2.length) ? s2.length : s1.length;
+    for (var i = 0; i < l; ++i) {
+        if (s1[i] > s2[i]) {
+            return true;
+        } else if (s1[i] < s2[i]) {
+            return false;
+        }
+    }
+    if (s1.length > s2.length) {
+        return true;
+    } else {
+        return false;
+    }
+}
+window.md5cache = {};
+function md5cached(s) {
+    if(!(s in window.md5cache)) {
+        window.md5cache[s] = md5(s);
+    }
+
+    return window.md5cache[s];
+}
+function commit(hash) {
+    this.sortParents = function() {
+        if (this.info == null) {
+            return;
+        }
+        this.render();
+        var pl = this.info.parents.length;
+        var handleParent = function(treeParent,p,pscore){
+            p.renderLink(treeParent);
+            if (scoreGT(pscore,p.score)) {
+                p.score = pscore;
+                if (p.domSelf != null) {
+                    var parent = (p.treeParent == null) ? document.getElementById("commits") : p.treeParent.pickSublist();
+                    parent.removeChild(p.domSelf);
+                    p.domSelf = null;
+                }
+                p.treeParent = treeParent;
+                p.sortParents();
+            }
+        }
+        if (pl > 0) {
+            var nextscore = this.score.concat();
+            ++nextscore[nextscore.length - 1];
+            handleParent(this.treeParent,this.info.parents[0], nextscore);
+
+            if (pl > 1) {
+                handleParent(this,this.info.parents[1], this.score.concat([1]));
+                if (pl > 2) {
+                    // octopus merges should be transformed to fake branches
+                    alert("Internal error: pl > 2");
+                }
+            }
+        }
+    }
+    this.render = function() {
+        if (this.domSelf != null) {
+            throw ("Stale placed" + this.hash);
+        }
+        this.domSelf = document.createElement("li");
+        this.domSelf.id = "li:" + this.hash;
+        this.domSelf.innerHTML = `<a style="position:relative"
+                ><span class="empty">[&gt;]</span
+                ><span class="empty" style="position:absolute;left:0;top:0;">[v]</span
+            ></a
+            ><a target="_blank"><img class="avatar" src=""/></a
+            ><a class="desc" target="_blank"></a
+            ><span class="score"></span>`;
+        if (this.info.commitType == "real") {
+            if (this.info.raw.author != null) {
+                var avatar_url = this.info.raw.author.avatar_url;
+                if (avatar_url.indexOf("?") >= 0) {
+                    avatar_url += "&s=32";
+                } else {
+                    avatar_url += "?s=32";
+                }
+                this.domSelf.getElementsByTagName("a")[1].setAttribute("href", this.info.raw.author.html_url);
+            } else {
+                var avatar_url = "https://www.gravatar.com/avatar/" + md5cached(this.info.raw.commit.author.email.trim().toLowerCase()) + "?s=32&d=retro";
+            }
+            if (avatar_url != "") {
+                this.domSelf.getElementsByTagName("a")[1].getElementsByTagName("img")[0].setAttribute("src", avatar_url);
+            } else {
+                this.domSelf.getElementsByTagName("a")[1].classList.add("hidden");
+            }
+            this.domSelf.getElementsByTagName("a")[2].setAttribute("href", this.info.raw.html_url);
+            this.domSelf.getElementsByTagName("a")[2].textContent = this.info.raw.commit.message.split("\n")[0];
+        } else if (this.info.commitType == "octopus") {
+            this.domSelf.getElementsByTagName("a")[1].classList.add("hidden");
+            this.domSelf.getElementsByTagName("a")[2].textContent = "parent" + this.info.raw.number;
+        }
+        // this.domSelf.getElementsByTagName("span")[0].textContent = JSON.stringify(this.score);
+        var base = (this.treeParent == null) ? document.getElementById("commits")
+                    : this.treeParent.pickSublist();
+        var prevDomLink = base.lastChild;
+        if (prevDomLink != null) {
+            var prevLinkText = prevDomLink.children[0].textContent;
+            if (prevLinkText == "-> " + this.hash) {
+                base.removeChild(prevDomLink);
+                this.domLinks = this.domLinks.filter(link => { return link != prevDomLink; });
+            }
+        }
+        base.appendChild(this.domSelf);
+        this.enableLinks();
+    }
+    this.renderLink = function(treeParent) {
+        var dom = document.createElement("li");
+        dom.innerHTML = "<a>-> " + this.hash + "</a>";
+        var base = (treeParent == null) ? document.getElementById("commits")
+                    : treeParent.pickSublist();
+        if (base != null) {
+            base.appendChild(dom);
+        }
+        this.domLinks.push(dom);
+    }
+    this.enableLinks = function() {
+        this.domLinks.forEach(link => {
+            link.children[0].setAttribute("href", "#li:" + this.hash);
+            link.children[0].textContent = "-> ";
+            var subject = document.createElement("span");
+            subject.textContent = this.info.raw.commit.message.split("\n")[0];
+            subject.classList.add("greyed");
+            link.appendChild(subject);
+            link.addEventListener("mouseover", () => this.onHoveredOn(true));
+            link.addEventListener("mouseout", () => this.onHoveredOff(true));
+        });
+    }
+    this.onHoveredOn = function(isSelf) {
+        if (this.domSelf != null) {
+            if (this.treeParent != null && this.treeParent.pickSublist().hasAttribute("hidden")) {
+                this.treeParent.onHoveredOn(false);
+            } else {
+                if (isSelf) {
+                    this.domSelf.classList.add("linked-hovered");
+                } else {
+                    this.domSelf.classList.add("linked-hovered-parent");
+                }
+            }
+        }
+    }
+    this.onHoveredOff = function(isSelf) {
+        if (this.domSelf != null) {
+            if (isSelf) {
+                this.domSelf.classList.remove("linked-hovered");
+            } else {
+                this.domSelf.classList.remove("linked-hovered-parent");
+            }
+            if (this.treeParent != null) {
+                this.treeParent.onHoveredOff(false);
+            }
+        }
+    }
+    this.pickSublist = function() {
+        if (this.domSelf == null) {
+            return null;
+        }
+
+        if (this.domSublist != null) {
+            return this.domSublist;
+        }
+        this.domToggle = this.domSelf.getElementsByTagName("a")[0];
+        this.domToggle.setAttribute("href", "javascript:state.commits[\"" + this.hash + "\"].toggle();");
+        this.domToggle.getElementsByTagName("span")[0].classList.remove("empty");
+        this.domSublist = document.createElement("ul");
+        this.domSelf.appendChild(this.domSublist);
+        this.domSublist.setAttribute("hidden", "")
+        return this.domSublist;
+    }
+    this.toggle = function() {
+        if (this.domSublist == null) {
+            throw "sublist not defined: " + this.hash;
+        }
+        if (this.domSublist.hasAttribute("hidden")) {
+            this.domSublist.removeAttribute("hidden");
+            this.domToggle.getElementsByTagName("span")[0].classList.add("empty");
+            this.domToggle.getElementsByTagName("span")[1].classList.remove("empty");
+        } else {
+            this.domSublist.setAttribute("hidden", "");
+            this.domToggle.getElementsByTagName("span")[0].classList.remove("empty");
+            this.domToggle.getElementsByTagName("span")[1].classList.add("empty");
+        }
+    }
+
+    this.hash = hash;
+    this.score = [1];
+    this.children = [];
+
+    // if null - to top mainline
+    // if commit `c` - to the mainline merged to `c`
+    this.treeParent = null;
+    this.info = null;
+    // the topmost element
+    this.domSelf = null;
+    // if the commit is a merge, the list which contains the merged mainline
+    this.domSublist = null;
+    // if the commit is a merge, the toggle button
+    this.domToggle = null;
+    this.domLinks = [];
+}
+function commitInfo(commitType,parents,raw) {
+    this.commitType = commitType;
+    this.parents = parents;
+    this.raw = raw;
+}
+var state = null;
+function uiStart() {
+    var url = document.getElementById("start:url").value;
+    if (startWithUrl(url)) {
+        window.location.search = "?url=" + encodeURIComponent(url);
+    }
+}
+function startWithUrl(url) {
+    var handler = null;
+    if ([githubTry].some(function (h) { handler = h(url); return (handler != null) })) {
+        elHide("start");
+        handler.activate();
+        window.state = new statePrototype(handler);
+        elShow("repo");
+        document.getElementById("repo:path").textContent = url;
+        return true;
+    }
+    return false;
+}
+function uiContinue() {
+    if (window.state == null) {
+        throw "uiContinue(): Unexpected: state must be defined";
+    }
+    window.state.getMoreCommits();
+}
+function elShow(elName) {
+    document.getElementById(elName).classList.remove("hidden");
+}
+function elHide(elName) {
+    document.getElementById(elName).classList.add("hidden");
+}
+function expandFocused() {
+    var commit = window.state.commits[location.hash.replace("#li:","")];
+    var treeParent = commit.treeParent;
+    var wasHidden = false;
+    while (treeParent != null) {
+        if (treeParent.domSublist.hasAttribute("hidden")) {
+            treeParent.domSublist.removeAttribute("hidden");
+            treeParent.domToggle.textContent = "[v]";
+            wasHidden = true;
+        }
+        treeParent = treeParent.treeParent;
+    }
+    if (wasHidden) {
+        document.getElementById(location.hash.replace("#", "")).scrollIntoView();
+    }
+}
+function uiPopupAuth()
+{
+    elShow("github:login:popup:back");
+    elShow("github:login:popup");
+    uiAdjustPopupPosition();
+}
+function uiHideAuth()
+{
+    elHide("github:login:popup:back");
+    elHide("github:login:popup");
+}
+function uiAdjustPopupPosition()
+{
+    var p = document.getElementById("github:login:popup");
+    p.style.left = "calc(50% - " + p.offsetWidth + "px / 2)";
+}
+function uiInit()
+{
+    window.onhashchange = expandFocused;
+    uiAdjustPopupPosition();
+    window.location.hash = "";
+    var m = /(?:\?|&)url\=([^&]*)(?:$|&)/.exec(window.location.search);
+    if (m != null) {
+        var url = m[1];
+        startWithUrl(decodeURIComponent(url));
+    }
+    var fontSize = window.getComputedStyle(document.getElementById('repo'), null).getPropertyValue('font-size');
+    for (var i=0; i<document.styleSheets.length; i++) {
+        s = document.styleSheets[i];
+        for (var j=0; j<s.cssRules.length; j++) {
+            r = s.cssRules[j]
+            if (r.selectorText == ".avatar") {
+                r.style['width'] = fontSize;
+                r.style['height'] = fontSize;
+            }
+        }
+    }
+}
+</script>
+<body onload="uiInit()">
+<form id="start" class="block" action="javascript:uiStart();">
+ <input id="start:url" type="text" name="url">
+ <input type="submit" value="Browse This Repository">
+</form>
+<div id="repo" class="inline hidden">
+ Browsing:
+ <span id="repo:path"></span>
+</div>
+as
+ <div id="github:anonymous" class="inline">Anonymous</div>
+ <div id="github:userinfo" class="inline hidden">
+  <img id="github:userinfo:avatar" src="" class="github-avatar"> <a id="github:userinfo:name" href="" target="_blank"></a>
+ </div>
+ <a href="javascript:uiPopupAuth();">Change</a>
+</div>
+<ul id="commits"></ul>
+<form id="continue" action="javascript:uiContinue();">
+ <input type="submit" value="Continue"> <!-- TODO: properly show it -->
+</form>
+<pre id="info"></pre>
+<div id="github:login:popup:back" class="popup-background hidden" onClick="javascript:uiHideAuth();">
+</div>
+ <div id="github:login:popup" class="popup hidden">
+  Left: <span id="limit:remaining">0</span>, reset at <span id="limit:reset"></span>.
+  <br>
+  Change login to
+  <form id="github:login" action="javascript:Github.initAuth();" class="block">
+   <select id="github:authtype" onChange="Github.setAuthType();">
+    <option value="noauth" selected>Anonymous</option>
+    <option value="token">Token login</option>
+   </select>
+   <span id="github:auth:form" class="hidden">
+    User: <input id="github:username" type="text" name="username">
+    Token: <input id="github:password" type="password" name="token">
+    (<a href="https://github.com/settings/tokens/new?scopes=&description=git-flog%20token" target="_blank">Get token</a>)
+   </span>
+   <input type="submit" value="Change">
+  </form>
+ </div>
+</body>
+<script>
+// {{{ - md5 ------------------------------------------------
+/**
+ * [js-md5]{@link https://github.com/emn178/js-md5}
+ *
+ * @namespace md5
+ * @version 0.4.2
+ * @author Chen, Yi-Cyuan [emn178@gmail.com]
+ * @copyright Chen, Yi-Cyuan 2014-2017
+ * @license MIT
+ * Permission is hereby granted, free of charge, to any person obtaining
+   a copy of this software and associated documentation files (the "Software"),
+   to deal in the Software without restriction, including without limitation
+   the rights to use, copy, modify, merge, publish, distribute, sublicense,
+   and/or sell copies of the Software, and to permit persons to whom
+   the Software is furnished to do so, subject to the following conditions:
+   1 The above copyright notice and this permission notice shall be included
+     in all copies or substantial portions of the Software.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+   THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+   OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+   ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+   OR OTHER DEALINGS IN THE SOFTWARE. 
+ */
+!function(){"use strict";
+function t(t){if(t)c[0]=c[16]=c[1]=c[2]=c[3]=c[4]=c[5]=c[6]=c[7]=c[8]=c[9]=c[10]=c[11]=c[12]=c[13]=c[14]=c[15]=0,this.blocks=c,this.buffer8=i;else if(n){var r=new ArrayBuffer(68);
+this.buffer8=new Uint8Array(r),this.blocks=new Uint32Array(r)}else this.blocks=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+this.h0=this.h1=this.h2=this.h3=this.start=this.bytes=0,this.finalized=this.hashed=!1,this.first=!0}var r="object"==typeof window?window:{},e=!r.JS_MD5_NO_NODE_JS&&"object"==typeof process&&process.versions&&process.versions.node;e&&(r=global);
+var i,h=!r.JS_MD5_NO_COMMON_JS&&"object"==typeof module&&module.exports,s="function"==typeof define&&define.amd,n=!r.JS_MD5_NO_ARRAY_BUFFER&&"undefined"!=typeof ArrayBuffer,f="0123456789abcdef".split(""),o=[128,32768,8388608,-2147483648],a=[0,8,16,24],u=["hex","array","digest","buffer","arrayBuffer"],c=[];
+if(n){var p=new ArrayBuffer(68);
+i=new Uint8Array(p),c=new Uint32Array(p)}var d=function(r){return function(e){return new t(!0).update(e)[r]()}},y=function(){var r=d("hex");
+e&&(r=l(r)),r.create=function(){return new t},r.update=function(t){return r.create().update(t)};
+for(var i=0;i<u.length;++i){var h=u[i];
+r[h]=d(h)}return r},l=function(t){var r=require("crypto"),e=require("buffer").Buffer,i=function(i){if("string"==typeof i)return r.createHash("md5").update(i,"utf8").digest("hex");
+if(i.constructor===ArrayBuffer)i=new Uint8Array(i);else if(void 0===i.length)return t(i);return r.createHash("md5").update(new e(i)).digest("hex")};return i};
+t.prototype.update=function(t){if(!this.finalized){var e="string"!=typeof t;e&&t.constructor==r.ArrayBuffer&&(t=new Uint8Array(t));for(var i,h,s=0,f=t.length||0,o=this.blocks,u=this.buffer8;f>s;
+){if(this.hashed&&(this.hashed=!1,o[0]=o[16],o[16]=o[1]=o[2]=o[3]=o[4]=o[5]=o[6]=o[7]=o[8]=o[9]=o[10]=o[11]=o[12]=o[13]=o[14]=o[15]=0),e)if(n)for(h=this.start;
+f>s&&64>h;++s)u[h++]=t[s];else for(h=this.start;f>s&&64>h;++s)o[h>>2]|=t[s]<<a[3&h++];else if(n)for(h=this.start;f>s&&64>h;
+++s)i=t.charCodeAt(s),128>i?u[h++]=i:2048>i?(u[h++]=192|i>>6,u[h++]=128|63&i):55296>i||i>=57344?(u[h++]=224|i>>12,u[h++]=128|i>>6&63,u[h++]=128|63&i):(i=65536+((1023&i)<<10|1023&t.charCodeAt(++s)),u[h++]=240|i>>18,u[h++]=128|i>>12&63,u[h++]=128|i>>6&63,u[h++]=128|63&i);else for(h=this.start;f>s&&64>h;
+++s)i=t.charCodeAt(s),128>i?o[h>>2]|=i<<a[3&h++]:2048>i?(o[h>>2]|=(192|i>>6)<<a[3&h++],o[h>>2]|=(128|63&i)<<a[3&h++]):55296>i||i>=57344?(o[h>>2]|=(224|i>>12)<<a[3&h++],o[h>>2]|=(128|i>>6&63)<<a[3&h++],o[h>>2]|=(128|63&i)<<a[3&h++]):(i=65536+((1023&i)<<10|1023&t.charCodeAt(++s)),o[h>>2]|=(240|i>>18)<<a[3&h++],o[h>>2]|=(128|i>>12&63)<<a[3&h++],o[h>>2]|=(128|i>>6&63)<<a[3&h++],o[h>>2]|=(128|63&i)<<a[3&h++]);
+this.lastByteIndex=h,this.bytes+=h-this.start,h>=64?(this.start=h-64,this.hash(),this.hashed=!0):this.start=h}return this}},t.prototype.finalize=function(){if(!this.finalized){this.finalized=!0;
+var t=this.blocks,r=this.lastByteIndex;
+t[r>>2]|=o[3&r],r>=56&&(this.hashed||this.hash(),t[0]=t[16],t[16]=t[1]=t[2]=t[3]=t[4]=t[5]=t[6]=t[7]=t[8]=t[9]=t[10]=t[11]=t[12]=t[13]=t[14]=t[15]=0),t[14]=this.bytes<<3,this.hash()}},t.prototype.hash=function(){var t,r,e,i,h,s,n=this.blocks;
+this.first?(t=n[0]-680876937, t=(t<<7|t>>>25)-271733879<<0, i=(-1732584194^2004318071&t)+n[1]-117830708,
+i=(i<<12|i>>>20)+t<<0, e=(-271733879^i&(-271733879^t))+n[2]-1126478375, e=(e<<17|e>>>15)+i<<0,
+r=(t^e&(i^t))+n[3]-1316259209, r=(r<<22|r>>>10)+e<<0):(t=this.h0, r=this.h1, e=this.h2, i=this.h3,
+t+=(i^r&(e^i))+n[0]-680876936,t=(t<<7|t>>>25)+r<<0,i+=(e^t&(r^e))+n[1]-389564586,
+i=(i<<12|i>>>20)+t<<0,e+=(r^i&(t^r))+n[2]+606105819,e=(e<<17|e>>>15)+i<<0,r+=(t^e&(i^t))+n[3]-1044525330,
+r=(r<<22|r>>>10)+e<<0),t+=(i^r&(e^i))+n[4]-176418897,t=(t<<7|t>>>25)+r<<0,i+=(e^t&(r^e))+n[5]+1200080426,
+i=(i<<12|i>>>20)+t<<0,e+=(r^i&(t^r))+n[6]-1473231341,e=(e<<17|e>>>15)+i<<0,r+=(t^e&(i^t))+n[7]-45705983,
+r=(r<<22|r>>>10)+e<<0,t+=(i^r&(e^i))+n[8]+1770035416,t=(t<<7|t>>>25)+r<<0,i+=(e^t&(r^e))+n[9]-1958414417,
+i=(i<<12|i>>>20)+t<<0,e+=(r^i&(t^r))+n[10]-42063,e=(e<<17|e>>>15)+i<<0,r+=(t^e&(i^t))+n[11]-1990404162,
+r=(r<<22|r>>>10)+e<<0,t+=(i^r&(e^i))+n[12]+1804603682,t=(t<<7|t>>>25)+r<<0,i+=(e^t&(r^e))+n[13]-40341101,
+i=(i<<12|i>>>20)+t<<0,e+=(r^i&(t^r))+n[14]-1502002290,e=(e<<17|e>>>15)+i<<0,r+=(t^e&(i^t))+n[15]+1236535329,
+r=(r<<22|r>>>10)+e<<0,t+=(e^i&(r^e))+n[1]-165796510,t=(t<<5|t>>>27)+r<<0,i+=(r^e&(t^r))+n[6]-1069501632,
+i=(i<<9|i>>>23)+t<<0,e+=(t^r&(i^t))+n[11]+643717713,e=(e<<14|e>>>18)+i<<0,r+=(i^t&(e^i))+n[0]-373897302,
+r=(r<<20|r>>>12)+e<<0,t+=(e^i&(r^e))+n[5]-701558691,t=(t<<5|t>>>27)+r<<0,i+=(r^e&(t^r))+n[10]+38016083,
+i=(i<<9|i>>>23)+t<<0,e+=(t^r&(i^t))+n[15]-660478335,e=(e<<14|e>>>18)+i<<0,r+=(i^t&(e^i))+n[4]-405537848,
+r=(r<<20|r>>>12)+e<<0,t+=(e^i&(r^e))+n[9]+568446438,t=(t<<5|t>>>27)+r<<0,i+=(r^e&(t^r))+n[14]-1019803690,
+i=(i<<9|i>>>23)+t<<0,e+=(t^r&(i^t))+n[3]-187363961,e=(e<<14|e>>>18)+i<<0,r+=(i^t&(e^i))+n[8]+1163531501,
+r=(r<<20|r>>>12)+e<<0,t+=(e^i&(r^e))+n[13]-1444681467,t=(t<<5|t>>>27)+r<<0,i+=(r^e&(t^r))+n[2]-51403784,
+i=(i<<9|i>>>23)+t<<0,e+=(t^r&(i^t))+n[7]+1735328473,e=(e<<14|e>>>18)+i<<0,r+=(i^t&(e^i))+n[12]-1926607734,
+r=(r<<20|r>>>12)+e<<0,h=r^e,t+=(h^i)+n[5]-378558,t=(t<<4|t>>>28)+r<<0,i+=(h^t)+n[8]-2022574463,i=(i<<11|i>>>21)+t<<0,
+s=i^t,e+=(s^r)+n[11]+1839030562,e=(e<<16|e>>>16)+i<<0,r+=(s^e)+n[14]-35309556,r=(r<<23|r>>>9)+e<<0,
+h=r^e,t+=(h^i)+n[1]-1530992060,t=(t<<4|t>>>28)+r<<0,i+=(h^t)+n[4]+1272893353,i=(i<<11|i>>>21)+t<<0,
+s=i^t,e+=(s^r)+n[7]-155497632,e=(e<<16|e>>>16)+i<<0,r+=(s^e)+n[10]-1094730640,r=(r<<23|r>>>9)+e<<0,
+h=r^e,t+=(h^i)+n[13]+681279174,t=(t<<4|t>>>28)+r<<0,i+=(h^t)+n[0]-358537222,i=(i<<11|i>>>21)+t<<0,
+s=i^t,e+=(s^r)+n[3]-722521979,e=(e<<16|e>>>16)+i<<0,r+=(s^e)+n[6]+76029189,r=(r<<23|r>>>9)+e<<0,
+h=r^e,t+=(h^i)+n[9]-640364487,t=(t<<4|t>>>28)+r<<0,i+=(h^t)+n[12]-421815835,i=(i<<11|i>>>21)+t<<0,
+s=i^t,e+=(s^r)+n[15]+530742520,e=(e<<16|e>>>16)+i<<0,r+=(s^e)+n[2]-995338651,
+r=(r<<23|r>>>9)+e<<0,t+=(e^(r|~i))+n[0]-198630844,t=(t<<6|t>>>26)+r<<0,i+=(r^(t|~e))+n[7]+1126891415,
+i=(i<<10|i>>>22)+t<<0,e+=(t^(i|~r))+n[14]-1416354905,e=(e<<15|e>>>17)+i<<0,r+=(i^(e|~t))+n[5]-57434055,
+r=(r<<21|r>>>11)+e<<0,t+=(e^(r|~i))+n[12]+1700485571,t=(t<<6|t>>>26)+r<<0,i+=(r^(t|~e))+n[3]-1894986606,
+i=(i<<10|i>>>22)+t<<0,e+=(t^(i|~r))+n[10]-1051523,e=(e<<15|e>>>17)+i<<0,r+=(i^(e|~t))+n[1]-2054922799,
+r=(r<<21|r>>>11)+e<<0,t+=(e^(r|~i))+n[8]+1873313359,t=(t<<6|t>>>26)+r<<0,i+=(r^(t|~e))+n[15]-30611744,
+i=(i<<10|i>>>22)+t<<0,e+=(t^(i|~r))+n[6]-1560198380,e=(e<<15|e>>>17)+i<<0,r+=(i^(e|~t))+n[13]+1309151649,
+r=(r<<21|r>>>11)+e<<0,t+=(e^(r|~i))+n[4]-145523070,t=(t<<6|t>>>26)+r<<0,i+=(r^(t|~e))+n[11]-1120210379,
+i=(i<<10|i>>>22)+t<<0,e+=(t^(i|~r))+n[2]+718787259,e=(e<<15|e>>>17)+i<<0,r+=(i^(e|~t))+n[9]-343485551,
+r=(r<<21|r>>>11)+e<<0,this.first?(this.h0=t+1732584193<<0,this.h1=r-271733879<<0,this.h2=e-1732584194<<0,this.h3=i+271733878<<0,
+this.first=!1):(this.h0=this.h0+t<<0,this.h1=this.h1+r<<0,this.h2=this.h2+e<<0,this.h3=this.h3+i<<0)},t.prototype.hex=function(){this.finalize();
+var t=this.h0,r=this.h1,e=this.h2,i=this.h3;
+return f[t>>4&15]+f[15&t]+f[t>>12&15]+f[t>>8&15]+f[t>>20&15]+f[t>>16&15]+f[t>>28&15]+f[t>>24&15]+f[r>>4&15]+f[15&r]+f[r>>12&15]+f[r>>8&15]+f[r>>20&15]+f[r>>16&15]+f[r>>28&15]+f[r>>24&15]+f[e>>4&15]+f[15&e]+f[e>>12&15]+f[e>>8&15]+f[e>>20&15]+f[e>>16&15]+f[e>>28&15]+f[e>>24&15]+f[i>>4&15]+f[15&i]+f[i>>12&15]+f[i>>8&15]+f[i>>20&15]+f[i>>16&15]+f[i>>28&15]+f[i>>24&15]},
+t.prototype.toString=t.prototype.hex,t.prototype.digest=function(){this.finalize();var t=this.h0,r=this.h1,e=this.h2,i=this.h3;
+return[255&t,t>>8&255,t>>16&255,t>>24&255,255&r,r>>8&255,r>>16&255,r>>24&255,255&e,e>>8&255,e>>16&255,e>>24&255,255&i,i>>8&255,i>>16&255,i>>24&255]},t.prototype.array=t.prototype.digest,t.prototype.arrayBuffer=function(){this.finalize();
+var t=new ArrayBuffer(16),r=new Uint32Array(t);
+return r[0]=this.h0,r[1]=this.h1,r[2]=this.h2,r[3]=this.h3,t},t.prototype.buffer=t.prototype.arrayBuffer;
+var b=y();h?module.exports=b:(r.md5=b,s&&define(function(){return b}))}();
+// }}} ------------------------------------------------------
+</script>
+</html>
